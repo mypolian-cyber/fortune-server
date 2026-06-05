@@ -24,3 +24,13 @@ export const confirmPayment = (data) =>
 // 결제 완료 여부 확인
 export const verifyPayment = (cacheKey, serviceType) =>
   api.get(`/payment/verify/${cacheKey}/${serviceType}`).then(r => r.data)
+
+export async function calculateGoonghap(data) {
+  const res = await fetch('/api/goonghap/calculate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  if (!res.ok) throw new Error('궁합 계산 실패')
+  return res.json()
+}

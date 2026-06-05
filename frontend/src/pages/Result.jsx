@@ -18,12 +18,26 @@ const labelStyle = {
   display: 'block',
 }
 
-export default function Result({ data, onBack }) {
+export default function Result({ data, goonghapData, onBack }) {
   const [tab, setTab] = useState('reading')
-  const { saju, mbti, reading, form } = data
+  const isGoonghap = goonghapData?.type === 'goonghap'
+  const activeData  = isGoonghap ? goonghapData.person_a : data
+  const { saju, mbti, reading, form } = activeData
+  const gReading    = isGoonghap ? goonghapData.reading   : null
+  const gScore      = isGoonghap ? goonghapData.goonghap  : null
+  const personB     = isGoonghap ? goonghapData.person_b  : null
   const pillars = saju?.pillars || []
   const pillarLabels = ['년주', '월주', '일주', '시주']
   const serviceType = form?.service_type || 'year'
+  const isPaid = isGoonghap || ['year_full', 'life', 'yukim'].includes(serviceType)
+
+  const handlePrint = () => {
+    window.print()
+  }
+
+  const handleSavePDF = () => {
+    window.print()
+  }
 
   // 월별·대운 차트 데이터 (API에서 받아야 함 — 임시 더미)
   const monthlyChart = data.monthly_chart || []
@@ -132,6 +146,100 @@ export default function Result({ data, onBack }) {
           </div>
         )}
 
+        {/* 궁합 전용 화면 */}
+        {isGoonghap && personB && (
+          <>
+            {/* 두 사람 MBTI 비교 */}
+            <div style={sectionStyle}>
+              <span style={labelStyle}>두 사람의 기운</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <div style={{ textAlign: 'center', flex: 1 }}>
+                  <div style={{ fontSize: '32px', fontWeight: '800',
+                    background: 'linear-gradient(135deg, #38bdf8, #0ea5e9)',
+                    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                    {mbti?.origin_type}
+                  </div>
+                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', marginTop: '4px' }}>나</div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '20px' }}>💫</div>
+                  {gScore && (
+                    <div style={{ color: '#a78bfa', fontSize: '10px', marginTop: '4px' }}>
+                      {gScore.status}
+                    </div>
+                  )}
+                </div>
+                <div style={{ textAlign: 'center', flex: 1 }}>
+                  <div style={{ fontSize: '32px', fontWeight: '800',
+                    background: 'linear-gradient(135deg, #f472b6, #ec4899)',
+                    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                    {personB.mbti?.origin_type}
+                  </div>
+                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', marginTop: '4px' }}>상대방</div>
+                </div>
+              </div>
+
+              {/* 축별 차이 바 */}
+              {gScore?.diff_detail && Object.entries(gScore.diff_detail).map(([axis, diff]) => (
+                <div key={axis} style={{ marginBottom: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>{axis}축</span>
+                    <span style={{ color: diff > 30 ? '#f87171' : diff > 15 ? '#fb923c' : '#34d399',
+                      fontSize: '11px' }}>
+                      {diff > 30 ? '큰 차이' : diff > 15 ? '보통 차이' : '비슷한 편'}
+                    </span>
+                  </div>
+                  <div style={{ height: '4px', background: 'rgba(255,255,255,0.08)',
+                    borderRadius: '99px', overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%', borderRadius: '99px',
+                      width: `${Math.min(diff * 1.5, 100)}%`,
+                      background: diff > 30
+                        ? 'linear-gradient(90deg, #f87171, #ef4444)'
+                        : diff > 15
+                        ? 'linear-gradient(90deg, #fb923c, #f97316)'
+                        : 'linear-gradient(90deg, #34d399, #10b981)',
+                      transition: 'width 0.8s ease',
+                    }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* 월별 차트 비교 */}
+            {goonghapData.person_a.monthly_chart?.length > 0 && (
+              <div style={sectionStyle}>
+                <span style={labelStyle}>올해 월별 기운 비교</span>
+                <div style={{ marginBottom: '8px' }}>
+                  <span style={{ color: '#38bdf8', fontSize: '11px' }}>● 나</span>
+                  <span style={{ color: '#f472b6', fontSize: '11px', marginLeft: '12px' }}>● 상대방</span>
+                </div>
+                <MonthlyWaveChart
+                  data={goonghapData.person_a.monthly_chart}
+                  dataB={goonghapData.person_b.monthly_chart}
+                  originType={mbti?.origin_type}
+                />
+              </div>
+            )}
+
+            {/* 대운 차트 비교 */}
+            {goonghapData.person_a.daewoon_chart?.length > 0 && (
+              <div style={sectionStyle}>
+                <span style={labelStyle}>평생 대운 비교</span>
+                <div style={{ marginBottom: '8px' }}>
+                  <span style={{ color: '#38bdf8', fontSize: '11px' }}>● 나</span>
+                  <span style={{ color: '#f472b6', fontSize: '11px', marginLeft: '12px' }}>● 상대방</span>
+                </div>
+                <DaewoonWaveChart
+                  data={goonghapData.person_a.daewoon_chart}
+                  dataB={goonghapData.person_b.daewoon_chart}
+                  originType={mbti?.origin_type}
+                />
+              </div>
+            )}
+          </>
+        )}
+
         {/* 풀이문 */}
         <div style={sectionStyle}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px',
@@ -184,7 +292,7 @@ export default function Result({ data, onBack }) {
                 ),
               }}
             >
-              {reading}
+              {isGoonghap ? gReading : reading}
             </ReactMarkdown>
           </div>
         </div>
@@ -267,13 +375,35 @@ export default function Result({ data, onBack }) {
           </div>
         )}
 
+        {/* 인쇄/저장 버튼 (유료만) */}
+        {isPaid && (
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }} className="no-print">
+            <button onClick={handlePrint} style={{
+              flex: 1, padding: '12px',
+              borderRadius: '14px', border: '1px solid rgba(167,139,250,0.3)',
+              background: 'rgba(167,139,250,0.1)',
+              color: '#a78bfa', cursor: 'pointer', fontSize: '13px',
+            }}>
+              🖨️ 인쇄하기
+            </button>
+            <button onClick={handleSavePDF} style={{
+              flex: 1, padding: '12px',
+              borderRadius: '14px', border: '1px solid rgba(236,72,153,0.3)',
+              background: 'rgba(236,72,153,0.1)',
+              color: '#ec4899', cursor: 'pointer', fontSize: '13px',
+            }}>
+              💾 PDF 저장
+            </button>
+          </div>
+        )}
+
         {/* 다시하기 */}
         <button onClick={onBack} style={{
           width: '100%', padding: '14px',
           borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)',
           background: 'transparent', color: 'rgba(255,255,255,0.4)',
           cursor: 'pointer', fontSize: '14px',
-        }}>
+        }} className="no-print">
           다시 볼게 🤍
         </button>
 

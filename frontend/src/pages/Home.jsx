@@ -82,7 +82,7 @@ export default function Home({ onResult, onGoonghap }) {
   return (
     <div style={{
       minHeight: '100dvh',
-      background: 'linear-gradient(160deg, #2d0a4e 0%, #1a1040 40%, #0f2060 100%)',
+      background: 'linear-gradient(135deg, #0d0020 0%, #1a0035 20%, #0a0a3e 50%, #001a3e 80%, #000d2e 100%)',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -90,32 +90,112 @@ export default function Home({ onResult, onGoonghap }) {
       padding: '16px',
       fontFamily: "'Noto Sans KR', sans-serif",
       boxSizing: 'border-box',
+      position: 'relative',
+      overflow: 'hidden',
     }}>
+      {/* 네온 배경 글로우 */}
+      <div style={{
+        position: 'fixed', top: '-30%', left: '-30%',
+        width: '80%', height: '80%',
+        background: 'radial-gradient(circle, rgba(140,40,255,0.55) 0%, rgba(80,0,180,0.2) 50%, transparent 70%)',
+        pointerEvents: 'none', zIndex: 0,
+      }} />
+      <div style={{
+        position: 'fixed', top: '-20%', right: '-25%',
+        width: '70%', height: '70%',
+        background: 'radial-gradient(circle, rgba(0,80,255,0.45) 0%, rgba(0,40,180,0.15) 50%, transparent 70%)',
+        pointerEvents: 'none', zIndex: 0,
+      }} />
+      <div style={{
+        position: 'fixed', bottom: '-20%', right: '-15%',
+        width: '65%', height: '65%',
+        background: 'radial-gradient(circle, rgba(255,0,180,0.5) 0%, rgba(180,0,120,0.2) 50%, transparent 70%)',
+        pointerEvents: 'none', zIndex: 0,
+      }} />
+      <div style={{
+        position: 'fixed', bottom: '0%', left: '-20%',
+        width: '60%', height: '60%',
+        background: 'radial-gradient(circle, rgba(0,200,255,0.35) 0%, rgba(0,120,200,0.1) 50%, transparent 70%)',
+        pointerEvents: 'none', zIndex: 0,
+      }} />
+      <div style={{
+        position: 'fixed', top: '40%', left: '30%',
+        width: '40%', height: '40%',
+        background: 'radial-gradient(circle, rgba(180,0,255,0.2) 0%, transparent 70%)',
+        pointerEvents: 'none', zIndex: 0,
+      }} />
+      {/* 별 장식 */}
+      {[
+        {top:'8%',left:'6%',size:'18px',opacity:0.7},
+        {top:'12%',right:'8%',size:'12px',opacity:0.5},
+        {top:'25%',left:'3%',size:'10px',opacity:0.4},
+        {top:'35%',right:'5%',size:'22px',opacity:0.6},
+        {top:'55%',left:'5%',size:'14px',opacity:0.5},
+        {top:'70%',right:'6%',size:'10px',opacity:0.4},
+        {top:'80%',left:'8%',size:'18px',opacity:0.6},
+        {top:'90%',right:'10%',size:'12px',opacity:0.5},
+      ].map((s, i) => (
+        <div key={i} style={{
+          position: 'fixed',
+          top: s.top, left: s.left, right: s.right,
+          fontSize: s.size, opacity: s.opacity,
+          pointerEvents: 'none', zIndex: 0,
+          filter: 'drop-shadow(0 0 4px rgba(167,139,250,0.8))',
+        }}>✦</div>
+      ))}
+      {/* 다이아 장식 */}
+      {[
+        {top:'18%',right:'12%',size:'14px',opacity:0.5},
+        {top:'45%',left:'7%',size:'12px',opacity:0.4},
+        {top:'65%',right:'8%',size:'16px',opacity:0.5},
+      ].map((s, i) => (
+        <div key={i} style={{
+          position: 'fixed',
+          top: s.top, left: s.left, right: s.right,
+          fontSize: s.size, opacity: s.opacity,
+          pointerEvents: 'none', zIndex: 0,
+          filter: 'drop-shadow(0 0 4px rgba(100,200,255,0.8))',
+        }}>◆</div>
+      ))}
 
       {/* 후아모 헤더 */}
-      <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+      <div style={{ textAlign: 'center', marginBottom: '14px', position: 'relative', zIndex: 1 }}>
         <img src="/huamo2.png" alt="후아모"
           style={{
-            width: '120px', height: '120px',
+            width: '90px', height: '90px',
             objectFit: 'contain',
             display: 'block',
-            margin: '0 auto 12px',
-            filter: 'drop-shadow(0 0 15px rgba(167,139,250,0.5))',
+            margin: '0 auto 10px',
+            filter: 'drop-shadow(0 0 20px rgba(167,139,250,0.7)) drop-shadow(0 0 40px rgba(167,139,250,0.3))',
           }}
         />
         <h1 style={{
-          fontSize: '20px', fontWeight: '800',
-          color: '#ffffff', margin: '0 0 4px',
-          textShadow: '0 0 20px rgba(167,139,250,0.5)',
-          letterSpacing: '-0.5px'
+          fontSize: '26px', fontWeight: '900',
+          margin: '0 0 6px',
+          background: 'linear-gradient(135deg, #fff 0%, #e0aaff 20%, #c77dff 40%, #ff6ef7 65%, #ffb3f0 85%, #fff 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          letterSpacing: '-0.5px',
+          lineHeight: 1.2,
+          filter: 'drop-shadow(0 2px 8px rgba(200,100,255,0.9)) drop-shadow(0 0 20px rgba(255,100,240,0.6))',
+          textShadow: 'none',
         }}>
-          MBTI로 운세를 볼까? 🤍
+          MBTI로 운세를 볼까?{' '}
+          <span style={{
+            background: 'linear-gradient(135deg, #ff0080 0%, #ff4d00 20%, #ffcc00 40%, #00ff88 60%, #0088ff 80%, #cc00ff 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            filter: 'drop-shadow(0 0 8px rgba(255,100,200,0.8)) drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
+            fontSize: '28px',
+          }}>💗</span>
         </h1>
         <p style={{
-          color: 'rgba(255,255,255,0.7)',
+          color: 'rgba(200,180,255,0.75)',
           fontSize: '13px', margin: 0,
-          fontFamily: "'Noto Sans KR', sans-serif",
-          fontWeight: '500',
+          fontWeight: '400',
+          letterSpacing: '0.2px',
         }}>
           이름도 필요없어. 생년월일시만 알려줘
         </p>
@@ -124,12 +204,21 @@ export default function Home({ onResult, onGoonghap }) {
       {/* 메인 카드 */}
       <div style={{
         width: '100%', maxWidth: '400px',
-        background: 'rgba(255,255,255,0.08)',
-        borderRadius: '20px',
-        padding: '16px',
-        border: '1px solid rgba(167,139,250,0.2)',
-        backdropFilter: 'blur(20px)',
+        background: 'linear-gradient(160deg, rgba(30,10,60,0.85) 0%, rgba(10,5,40,0.9) 50%, rgba(5,10,50,0.85) 100%)',
+        borderRadius: '24px',
+        padding: '20px',
+        border: '1px solid rgba(150,80,255,0.35)',
+        backdropFilter: 'blur(30px)',
         boxSizing: 'border-box',
+        boxShadow: `
+          0 0 0 1px rgba(255,255,255,0.04),
+          0 2px 4px rgba(0,0,0,0.6),
+          0 8px 24px rgba(0,0,0,0.5),
+          0 0 60px rgba(120,40,255,0.2),
+          inset 0 1px 0 rgba(255,255,255,0.08),
+          inset 0 -1px 0 rgba(0,0,0,0.3)
+        `,
+        position: 'relative', zIndex: 1,
       }}>
 
         {/* 생년월일 */}
@@ -260,16 +349,20 @@ export default function Home({ onResult, onGoonghap }) {
                 style={{
                   display: 'flex', alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '8px 12px',
-                  borderRadius: '12px', border: 'none',
+                  padding: '10px 14px',
+                  borderRadius: '14px', border: 'none',
                   cursor: 'pointer', textAlign: 'left',
                   transition: 'all 0.2s',
                   background: form.service_type === s.value
-                    ? 'rgba(167,139,250,0.25)'
-                    : 'rgba(255,255,255,0.06)',
+                    ? 'linear-gradient(135deg, rgba(167,139,250,0.25) 0%, rgba(236,72,153,0.15) 100%)'
+                    : 'linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.03) 100%)',
                   outline: form.service_type === s.value
-                    ? '2px solid rgba(167,139,250,0.8)'
-                    : '1px solid rgba(255,255,255,0.12)',
+                    ? '1.5px solid rgba(180,100,255,0.9)'
+                    : '1px solid rgba(255,255,255,0.1)',
+                  boxShadow: form.service_type === s.value
+                    ? '0 0 20px rgba(167,139,250,0.3), 0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)'
+                    : '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.04)',
+                  transform: form.service_type === s.value ? 'translateY(-1px)' : 'none',
                 }}
               >
                 <div>
@@ -322,13 +415,22 @@ export default function Home({ onResult, onGoonghap }) {
           onClick={handleSubmit}
           disabled={loading}
           style={{
-            width: '100%', padding: '14px',
-            borderRadius: '14px', border: 'none', cursor: 'pointer',
+            width: '100%', padding: '16px',
+            borderRadius: '16px', border: 'none', cursor: 'pointer',
             background: loading
               ? 'rgba(167,139,250,0.3)'
-              : 'linear-gradient(135deg, #a78bfa 0%, #ec4899 100%)',
-            color: '#fff', fontSize: '15px', fontWeight: '700',
-            boxShadow: loading ? 'none' : '0 4px 20px rgba(167,139,250,0.4)',
+              : 'linear-gradient(135deg, #b347ff 0%, #e040fb 35%, #ff4db8 65%, #ff6b9d 100%)',
+            color: '#fff', fontSize: '16px', fontWeight: '800',
+            letterSpacing: '0.3px',
+            boxShadow: loading ? 'none' : `
+              0 4px 0 rgba(100,0,180,0.6),
+              0 8px 24px rgba(180,50,255,0.5),
+              0 0 40px rgba(255,50,180,0.3),
+              inset 0 1px 0 rgba(255,255,255,0.25),
+              inset 0 -2px 0 rgba(0,0,0,0.2)
+            `,
+            transform: loading ? 'none' : 'translateY(-1px)',
+            transition: 'all 0.15s',
           }}
         >
           {loading ? '후아모가 읽는 중... ♥' : (
@@ -344,27 +446,28 @@ export default function Home({ onResult, onGoonghap }) {
       </div>
 
       <p style={{
-        color: 'rgba(255,255,255,0.4)', fontSize: '11px',
-        marginTop: '12px', textAlign: 'center'
+        color: 'rgba(255,255,255,0.35)', fontSize: '11px',
+        marginTop: '12px', textAlign: 'center',
+        position: 'relative', zIndex: 1,
       }}>
-        입력 정보는 저장되지 않아
+        🔒 입력 정보는 저장되지 않아
       </p>
     </div>
   )
 }
 
 const labelSt = {
-  color: 'rgba(255,255,255,0.8)',
+  color: 'rgba(200,180,255,0.9)',
   fontSize: '12px',
   fontWeight: '600',
   display: 'block',
   marginBottom: '6px',
-  letterSpacing: '0.3px',
+  letterSpacing: '0.5px',
 }
 
 const inputSt = {
-  background: 'rgba(255,255,255,0.10)',
-  border: '1px solid rgba(255,255,255,0.2)',
+  background: 'linear-gradient(160deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.04) 100%)',
+  border: '1.5px solid rgba(120,80,255,0.45)',
   borderRadius: '12px',
   padding: '10px 12px',
   color: '#ffffff',
@@ -372,4 +475,5 @@ const inputSt = {
   fontWeight: '500',
   outline: 'none',
   boxSizing: 'border-box',
+  boxShadow: '0 0 12px rgba(120,80,255,0.15), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.2)',
 }

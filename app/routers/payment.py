@@ -65,6 +65,7 @@ async def prepare_payment(req: PaymentRequest, db: AsyncSession = Depends(get_db
     order_id = f"fortune_{req.service_type}_{uuid.uuid4().hex[:12]}"
 
     payment = Payment(
+        order_id     = order_id,
         payment_key  = None,
         service_type = req.service_type,
         amount       = total,
@@ -111,8 +112,8 @@ async def confirm_payment(req: PaymentConfirm, db: AsyncSession = Depends(get_db
 
     # DB 업데이트
     stmt = select(Payment).where(
-        Payment.status == "pending",
-        Payment.amount == req.amount
+        Payment.order_id == req.order_id,
+        Payment.status   == "pending"
     )
     db_result = await db.execute(stmt)
     payment   = db_result.scalar_one_or_none()

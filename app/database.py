@@ -45,6 +45,7 @@ class ReadingCache(Base):
 class Payment(Base):
     __tablename__ = "payments"
     id           = Column(Integer, primary_key=True)
+    order_id     = Column(String(100), unique=True)
     payment_key  = Column(String(200), unique=True)
     service_type = Column(String(20), nullable=False)
     amount       = Column(Integer, nullable=False)

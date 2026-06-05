@@ -85,7 +85,7 @@ export default function App() {
   const handleGoonghapResult = (data) => {
     setGoonghapData(data)
     setPendingService('goonghap')
-    setSajuData(data.personA)
+    setSajuData(data.person_a)
     setShowPayment(true)
   }
 
@@ -125,6 +125,7 @@ export default function App() {
       {page === 'result' && (
         <Result
           data={sajuData}
+          goonghapData={goonghapData}
           onBack={goHome}
           onUpgrade={handleUpgrade}
         />

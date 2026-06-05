@@ -9,9 +9,13 @@ app = FastAPI(title="Fortune API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=[
+        "https://fortune.adelante-properties.com",
+        "http://localhost:5173",
+        "http://localhost:3000",
+    ],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 @app.on_event("startup")
@@ -24,10 +28,11 @@ async def startup():
 async def health():
     return {"status": "ok"}
 
-from app.routers import saju, payment, yukim
+from app.routers import saju, payment, yukim, goonghap
 app.include_router(saju.router, prefix="/api/saju", tags=["saju"])
 app.include_router(payment.router, prefix="/api/payment", tags=["payment"])
 app.include_router(yukim.router, prefix="/api/yukim", tags=["yukim"])
+app.include_router(goonghap.router, prefix="/api/goonghap", tags=["goonghap"])
 
 from fastapi import UploadFile, File
 import shutil

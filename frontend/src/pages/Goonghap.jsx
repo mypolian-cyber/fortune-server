@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { calculateSaju } from '../services/api'
+import { calculateSaju, calculateGoonghap } from '../services/api'
 
 const HOURS = [
   { label: '잘 모르겠어 (3주로 볼게)', value: null },
@@ -47,33 +47,30 @@ export default function Goonghap({ onResult, onBack }) {
     setError('')
     setLoading(true)
     try {
-      // 두 사람 동시 계산
-      const [resultA, resultB] = await Promise.all([
-        calculateSaju({
+      const result = await calculateGoonghap({
+        person_a: {
           year: parseInt(personA.year),
           month: parseInt(personA.month),
           day: parseInt(personA.day),
           hour: personA.hour,
           minute: 0,
           gender: personA.gender,
-          service_type: 'goonghap',
-          target_year: new Date().getFullYear()
-        }),
-        calculateSaju({
+        },
+        person_b: {
           year: parseInt(personB.year),
           month: parseInt(personB.month),
           day: parseInt(personB.day),
           hour: personB.hour,
           minute: 0,
           gender: personB.gender,
-          service_type: 'goonghap',
-          target_year: new Date().getFullYear()
-        })
-      ])
+        },
+        target_year: new Date().getFullYear()
+      })
       onResult({
         type: 'goonghap',
-        personA: { ...resultA, form: personA },
-        personB: { ...resultB, form: personB },
+        ...result,
+        formA: personA,
+        formB: personB,
       })
     } catch (e) {
       setError('앗, 뭔가 잘못됐어. 다시 시도해봐 🤍')
