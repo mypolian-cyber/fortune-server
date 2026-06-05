@@ -28,11 +28,13 @@ async def startup():
 async def health():
     return {"status": "ok"}
 
-from app.routers import saju, payment, yukim, goonghap
+from app.routers import saju, payment, yukim, goonghap, contact, admin
 app.include_router(saju.router, prefix="/api/saju", tags=["saju"])
 app.include_router(payment.router, prefix="/api/payment", tags=["payment"])
 app.include_router(yukim.router, prefix="/api/yukim", tags=["yukim"])
 app.include_router(goonghap.router, prefix="/api/goonghap", tags=["goonghap"])
+app.include_router(contact.router, prefix="/api/contact", tags=["contact"])
+app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 
 from fastapi import UploadFile, File
 import shutil

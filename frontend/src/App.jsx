@@ -3,6 +3,7 @@ import Home from './pages/Home'
 import Goonghap from './pages/Goonghap'
 import Result from './pages/Result'
 import PaymentModal from './components/Payment'
+import ContactModal from './components/Contact'
 import { calculateSaju, verifyPayment } from './services/api'
 
 export default function App() {
@@ -11,6 +12,7 @@ export default function App() {
   const [sajuData, setSajuData] = useState(null)
   const [showPayment, setShowPayment] = useState(false)
   const [pendingService, setPendingService] = useState(null)
+  const [showContact, setShowContact] = useState(false)
 
   // 결제 성공 콜백 처리
   useEffect(() => {
@@ -130,6 +132,33 @@ export default function App() {
           onUpgrade={handleUpgrade}
         />
       )}
+      {/* 문의하기 버튼 */}
+      {(page === 'home') && (
+        <button
+          onClick={() => setShowContact(true)}
+          style={{
+            position: 'fixed', bottom: '20px', right: '20px',
+            zIndex: 100,
+            background: 'linear-gradient(135deg, rgba(30,10,60,0.95), rgba(10,5,40,0.95))',
+            border: '1px solid rgba(150,80,255,0.4)',
+            borderRadius: '50px',
+            padding: '10px 18px',
+            color: 'rgba(200,180,255,0.9)',
+            fontSize: '13px', fontWeight: '600',
+            cursor: 'pointer',
+            boxShadow: '0 4px 20px rgba(120,40,255,0.3)',
+            backdropFilter: 'blur(10px)',
+          }}
+        >
+          📩 문의하기
+        </button>
+      )}
+
+      {/* 문의 모달 */}
+      {showContact && (
+        <ContactModal onClose={() => setShowContact(false)} />
+      )}
+
       {showPayment && pendingService && (
         <PaymentModal
           serviceType={pendingService}

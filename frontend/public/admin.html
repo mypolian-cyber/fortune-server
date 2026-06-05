@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>후아모 관리자</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: linear-gradient(160deg, #0d0020 0%, #1a0035 30%, #0a0a3e 70%, #000d2e 100%);
+      color: #fff;
+      font-family: 'Noto Sans KR', sans-serif;
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .header h1 {
+      font-size: 22px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #e0aaff, #c77dff, #ff6ef7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 4px;
+    }
+    .header p { color: rgba(255,255,255,0.4); font-size: 12px; }
+
+    /* 로그인 */
+    .login-box {
+      max-width: 340px;
+      margin: 80px auto;
+      background: rgba(30,10,60,0.85);
+      border: 1px solid rgba(150,80,255,0.35);
+      border-radius: 20px;
+      padding: 32px 24px;
+      text-align: center;
+    }
+    .login-box h2 { color: #a78bfa; font-size: 18px; margin-bottom: 20px; }
+    .login-box input {
+      width: 100%; padding: 12px 14px;
+      background: rgba(255,255,255,0.07);
+      border: 1.5px solid rgba(120,80,255,0.4);
+      border-radius: 12px; color: #fff;
+      font-size: 14px; outline: none;
+      margin-bottom: 12px;
+    }
+    .login-box button {
+      width: 100%; padding: 13px;
+      border-radius: 14px; border: none;
+      background: linear-gradient(135deg, #b347ff, #ff4db8);
+      color: #fff; font-size: 15px;
+      font-weight: 700; cursor: pointer;
+    }
+    .error { color: #f87171; font-size: 12px; margin-top: 8px; }
+
+    /* 대시보드 */
+    .dashboard { max-width: 800px; margin: 0 auto; display: none; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
+    .card {
+      background: rgba(30,10,60,0.75);
+      border: 1px solid rgba(150,80,255,0.25);
+      border-radius: 16px; padding: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .card-title {
+      color: rgba(200,180,255,0.7);
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.5px; margin-bottom: 10px;
+    }
+    .big-num {
+      font-size: 32px; font-weight: 800;
+      background: linear-gradient(135deg, #e0aaff, #ff6ef7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1;
+    }
+    .sub-num { color: rgba(255,255,255,0.4); font-size: 11px; margin-top: 4px; }
+    .amount {
+      font-size: 20px; font-weight: 700;
+      color: #ffd700;
+    }
+    .bar-wrap { margin-top: 8px; }
+    .bar-row {
+      display: flex; align-items: center;
+      gap: 8px; margin-bottom: 6px;
+    }
+    .bar-label { color: rgba(255,255,255,0.6); font-size: 11px; width: 40px; flex-shrink: 0; }
+    .bar-bg {
+      flex: 1; height: 8px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 99px; overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%; border-radius: 99px;
+      background: linear-gradient(90deg, #a78bfa, #ec4899);
+      transition: width 0.8s ease;
+    }
+    .bar-count { color: rgba(255,255,255,0.5); font-size: 11px; width: 30px; text-align: right; }
+    .service-row {
+      display: flex; justify-content: space-between;
+      align-items: center; padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .service-row:last-child { border-bottom: none; }
+    .service-name { color: rgba(255,255,255,0.8); font-size: 13px; }
+    .service-info { text-align: right; }
+    .service-count { color: #a78bfa; font-size: 12px; }
+    .service-amount { color: #ffd700; font-size: 11px; margin-top: 2px; }
+    .refresh-btn {
+      display: block; margin: 0 auto 20px;
+      padding: 8px 20px; border-radius: 20px;
+      border: 1px solid rgba(150,80,255,0.3);
+      background: transparent; color: rgba(200,180,255,0.7);
+      cursor: pointer; font-size: 12px;
+    }
+    .updated { text-align: center; color: rgba(255,255,255,0.25); font-size: 11px; margin-bottom: 16px; }
+    .download-card {
+      background: rgba(30,10,60,0.75);
+      border: 1px solid rgba(150,80,255,0.25);
+      border-radius: 16px; padding: 20px;
+      margin-bottom: 16px;
+    }
+    .download-card h3 {
+      color: rgba(200,180,255,0.8);
+      font-size: 13px; font-weight: 600;
+      margin-bottom: 14px; letter-spacing: 0.5px;
+    }
+    .date-row {
+      display: flex; gap: 8px; align-items: center;
+      margin-bottom: 12px; flex-wrap: wrap;
+    }
+    .date-row input {
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.07);
+      border: 1.5px solid rgba(120,80,255,0.35);
+      border-radius: 10px; color: #fff;
+      font-size: 13px; outline: none;
+    }
+    .date-row span { color: rgba(255,255,255,0.4); font-size: 13px; }
+    .dl-btn {
+      padding: 9px 18px; border-radius: 10px; border: none;
+      cursor: pointer; font-size: 13px; font-weight: 600;
+    }
+    .dl-btn-users {
+      background: linear-gradient(135deg, #a78bfa, #7c3aed);
+      color: #fff;
+    }
+    .dl-btn-pay {
+      background: linear-gradient(135deg, #ffd700, #f59e0b);
+      color: #000;
+    }
+    @media (max-width: 500px) {
+      .grid-3 { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 로그인 -->
+  <div class="login-box" id="loginBox">
+    <h2>🔒 관리자 로그인</h2>
+    <input type="password" id="pwInput" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter') login()" />
+    <button onclick="login()">로그인</button>
+    <div class="error" id="loginError"></div>
+  </div>
+
+  <!-- 대시보드 -->
+  <div class="dashboard" id="dashboard">
+    <div class="header">
+      <h1>🌙 후아모 관리자</h1>
+      <p id="updatedAt"></p>
+    </div>
+
+    <button class="refresh-btn" onclick="loadStats()">🔄 새로고침</button>
+
+    <!-- 이용자 현황 -->
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-title">오늘 이용자</div>
+        <div class="big-num" id="todayUsers">-</div>
+        <div class="sub-num">명</div>
+      </div>
+      <div class="card">
+        <div class="card-title">이번달 이용자</div>
+        <div class="big-num" id="monthUsers">-</div>
+        <div class="sub-num">명</div>
+      </div>
+      <div class="card">
+        <div class="card-title">전체 이용자</div>
+        <div class="big-num" id="totalUsers">-</div>
+        <div class="sub-num">명 누적</div>
+      </div>
+    </div>
+
+    <!-- 결제 현황 -->
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-title">오늘 결제</div>
+        <div class="amount" id="todayAmount">-</div>
+        <div class="sub-num" id="todayPayCount">0건</div>
+      </div>
+      <div class="card">
+        <div class="card-title">이번달 결제</div>
+        <div class="amount" id="monthAmount">-</div>
+        <div class="sub-num" id="monthPayCount">0건</div>
+      </div>
+      <div class="card">
+        <div class="card-title">전체 결제</div>
+        <div class="amount" id="totalAmount">-</div>
+        <div class="sub-num" id="totalPayCount">0건 누적</div>
+      </div>
+    </div>
+
+    <!-- 성별 + 연령대 -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">성별 분포</div>
+        <div class="bar-wrap" id="genderChart"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">연령대 분포</div>
+        <div class="bar-wrap" id="ageChart"></div>
+      </div>
+    </div>
+
+    <!-- 서비스별 -->
+    <div class="card">
+      <div class="card-title">서비스별 결제 현황</div>
+      <div id="serviceList"></div>
+    </div>
+
+    <!-- 데이터 다운로드 -->
+    <div class="download-card">
+      <h3>📥 데이터 다운로드 (CSV)</h3>
+      <div class="date-row">
+        <input type="date" id="startDate" />
+        <span>~</span>
+        <input type="date" id="endDate" />
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="dl-btn dl-btn-users" onclick="downloadData('users')">
+          👥 이용자 데이터
+        </button>
+        <button class="dl-btn dl-btn-pay" onclick="downloadData('payments')">
+          💰 결제 데이터
+        </button>
+        <button class="dl-btn" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);"
+          onclick="document.getElementById('startDate').value=''; document.getElementById('endDate').value=''">
+          전체 기간
+        </button>
+      </div>
+      <div style="color:rgba(255,255,255,0.25);font-size:11px;margin-top:10px;">
+        기간 미선택 시 전체 데이터 다운로드 / Excel에서 열 수 있는 CSV 형식
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let savedPw = ''
+
+    function login() {
+      const pw = document.getElementById('pwInput').value
+      if (!pw) return
+      savedPw = pw
+      loadStats()
+    }
+
+    function loadStats() {
+      const pw = savedPw || document.getElementById('pwInput')?.value
+      if (!pw) return
+
+      fetch('/api/admin/stats', {
+        headers: {
+          'Authorization': 'Basic ' + btoa('admin:' + pw)
+        }
+      })
+      .then(r => {
+        if (r.status === 401) {
+          document.getElementById('loginError').textContent = '비밀번호가 틀렸습니다'
+          return null
+        }
+        return r.json()
+      })
+      .then(data => {
+        if (!data) return
+        document.getElementById('loginBox').style.display = 'none'
+        document.getElementById('dashboard').style.display = 'block'
+        renderStats(data)
+      })
+      .catch(e => {
+        document.getElementById('loginError').textContent = '오류가 발생했습니다'
+      })
+    }
+
+    function fmt(n) {
+      return n.toLocaleString() + '원'
+    }
+
+    function renderStats(d) {
+      document.getElementById('updatedAt').textContent =
+        '업데이트: ' + new Date().toLocaleString('ko-KR')
+
+      // 이용자
+      document.getElementById('todayUsers').textContent  = d.users.today
+      document.getElementById('monthUsers').textContent  = d.users.month
+      document.getElementById('totalUsers').textContent  = d.users.total
+
+      // 결제
+      document.getElementById('todayAmount').textContent  = fmt(d.payments.today.amount)
+      document.getElementById('monthAmount').textContent  = fmt(d.payments.month.amount)
+      document.getElementById('totalAmount').textContent  = fmt(d.payments.total.amount)
+      document.getElementById('todayPayCount').textContent  = d.payments.today.count + '건'
+      document.getElementById('monthPayCount').textContent  = d.payments.month.count + '건'
+      document.getElementById('totalPayCount').textContent  = d.payments.total.count + '건 누적'
+
+      // 성별
+      const gTotal = Object.values(d.gender).reduce((a,b) => a+b, 0) || 1
+      const gNames = { M: '남성', F: '여성' }
+      document.getElementById('genderChart').innerHTML =
+        Object.entries(d.gender).map(([k,v]) => `
+          <div class="bar-row">
+            <div class="bar-label">${gNames[k]||k}</div>
+            <div class="bar-bg"><div class="bar-fill" style="width:${v/gTotal*100}%"></div></div>
+            <div class="bar-count">${v}</div>
+          </div>
+        `).join('')
+
+      // 연령대
+      const aTotal = Object.values(d.age_groups).reduce((a,b) => a+b, 0) || 1
+      document.getElementById('ageChart').innerHTML =
+        Object.entries(d.age_groups).map(([k,v]) => `
+          <div class="bar-row">
+            <div class="bar-label">${k}</div>
+            <div class="bar-bg"><div class="bar-fill" style="width:${v/aTotal*100}%"></div></div>
+            <div class="bar-count">${v}</div>
+          </div>
+        `).join('')
+
+      // 서비스별
+      const sNames = {
+        year: '올해 기운 (무료)',
+        year_full: '올해 기운 풀버전',
+        life: '평생 기운',
+        goonghap: '우리 궁합',
+        yukim: '이 일은 이루어질까?',
+      }
+      document.getElementById('serviceList').innerHTML =
+        d.services.length === 0
+          ? '<div style="color:rgba(255,255,255,0.3);text-align:center;padding:16px;font-size:13px">결제 내역이 없습니다</div>'
+          : d.services.map(s => `
+            <div class="service-row">
+              <div class="service-name">${sNames[s.type]||s.type}</div>
+              <div class="service-info">
+                <div class="service-count">${s.count}건</div>
+                <div class="service-amount">${fmt(s.amount)}</div>
+              </div>
+            </div>
+          `).join('')
+    }
+    function downloadData(type) {
+      const start = document.getElementById('startDate').value
+      const end   = document.getElementById('endDate').value
+      let url = `/api/admin/download/${type}?`
+      if (start) url += `start=${start}&`
+      if (end)   url += `end=${end}&`
+
+      // Basic Auth 헤더로 다운로드
+      fetch(url, {
+        headers: { 'Authorization': 'Basic ' + btoa('admin:' + savedPw) }
+      })
+      .then(r => r.blob())
+      .then(blob => {
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(blob)
+        const date = new Date().toISOString().slice(0,10)
+        a.download = `huamo_${type}_${start||'all'}_${end||date}.csv`
+        a.click()
+      })
+      .catch(e => alert('다운로드 실패'))
+    }
+
+    // 오늘 날짜 기본값
+    const today = new Date().toISOString().slice(0,10)
+    const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0,10)
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('startDate').value = firstDay
+      document.getElementById('endDate').value = today
+    })
+  </script>
+</body>
+</html>

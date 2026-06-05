@@ -1,5 +1,10 @@
 import { useState } from 'react'
 import { calculateSaju } from '../services/api'
+// 손글씨 폰트
+const fontLink = document.createElement('link')
+fontLink.href = 'https://fonts.googleapis.com/css2?family=Gaegu:wght@700&display=swap'
+fontLink.rel = 'stylesheet'
+document.head.appendChild(fontLink)
 
 const HOURS = [
   { label: '잘 모르겠어 (3주로 볼게)', value: null },
@@ -22,7 +27,7 @@ const SERVICES = [
   { value: 'year_full', label: '올해 기운 풀버전',  sub: '월별 파동 + 상세 풀이',  price: '990원',   free: false, hot: true },
   { value: 'life',      label: '평생 기운',        sub: '타고난 기질과 흐름',      price: '1,650원', free: false },
   { value: 'goonghap',  label: '우리 궁합',        sub: '두 사람의 기운',          price: '1,650원', free: false },
-  { value: 'yukim',     label: '지금 이 질문',     sub: '육임으로 이 순간의 답',   price: '1,650원', free: false },
+  { value: 'yukim',     label: '이 일은 이루어질까?', sub: '지금 이 순간의 답',      price: '1,650원', free: false },
 ]
 
 export default function Home({ onResult, onGoonghap }) {
@@ -159,19 +164,33 @@ export default function Home({ onResult, onGoonghap }) {
       ))}
 
       {/* 후아모 헤더 */}
-      <div style={{ textAlign: 'center', marginBottom: '14px', position: 'relative', zIndex: 1 }}>
-        <img src="/huamo2.png" alt="후아모"
-          style={{
-            width: '90px', height: '90px',
-            objectFit: 'contain',
-            display: 'block',
-            margin: '0 auto 10px',
-            filter: 'drop-shadow(0 0 20px rgba(167,139,250,0.7)) drop-shadow(0 0 40px rgba(167,139,250,0.3))',
-          }}
-        />
+      <div style={{ textAlign: 'center', marginBottom: '8px', position: 'relative', zIndex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '6px' }}>
+          <img src="/huamo2.png" alt="후아모"
+            style={{
+              width: '90px', height: '90px',
+              objectFit: 'contain',
+              filter: 'drop-shadow(0 0 20px rgba(167,139,250,0.7)) drop-shadow(0 0 40px rgba(167,139,250,0.3))',
+            }}
+          />
+          <div style={{
+            fontFamily: "'Gaegu', cursive",
+            fontSize: '18px',
+            fontWeight: '700',
+            background: 'linear-gradient(135deg, #ffe066, #ffaa00, #ff8c00)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            filter: 'drop-shadow(0 0 10px rgba(255,180,0,0.7))',
+            lineHeight: 1.3,
+            textAlign: 'left',
+          }}>
+            후아모가<br/>알려줄께~
+          </div>
+        </div>
         <h1 style={{
-          fontSize: '26px', fontWeight: '900',
-          margin: '0 0 6px',
+          fontSize: '22px', fontWeight: '900',
+          margin: '0 0 4px',
           background: 'linear-gradient(135deg, #fff 0%, #e0aaff 20%, #c77dff 40%, #ff6ef7 65%, #ffb3f0 85%, #fff 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
@@ -206,7 +225,7 @@ export default function Home({ onResult, onGoonghap }) {
         width: '100%', maxWidth: '400px',
         background: 'linear-gradient(160deg, rgba(30,10,60,0.85) 0%, rgba(10,5,40,0.9) 50%, rgba(5,10,50,0.85) 100%)',
         borderRadius: '24px',
-        padding: '20px',
+        padding: '14px 16px',
         border: '1px solid rgba(150,80,255,0.35)',
         backdropFilter: 'blur(30px)',
         boxSizing: 'border-box',
@@ -222,7 +241,7 @@ export default function Home({ onResult, onGoonghap }) {
       }}>
 
         {/* 생년월일 */}
-        <div style={{ marginBottom: '10px' }}>
+        <div style={{ marginBottom: '7px' }}>
           <label style={labelSt}>생년월일</label>
           <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-start' }}>
             <div style={{ flex: 1 }}>
@@ -265,7 +284,7 @@ export default function Home({ onResult, onGoonghap }) {
         </div>
 
         {/* 양력/음력 */}
-        <div style={{ marginBottom: '10px' }}>
+        <div style={{ marginBottom: '7px' }}>
           <label style={labelSt}>양력 / 음력</label>
           <div style={{ display: 'flex', gap: '8px' }}>
             {[{label:'양력',value:'solar'},{label:'음력',value:'lunar'}].map(c => (
@@ -291,8 +310,24 @@ export default function Home({ onResult, onGoonghap }) {
         </div>
 
         {/* 태어난 시간 */}
-        <div style={{ marginBottom: '10px' }}>
+        <div style={{ marginBottom: '7px' }}>
           <label style={labelSt}>태어난 시간</label>
+          <select
+            value={form.hour ?? ''}
+            onChange={e => setForm({...form,
+              hour: e.target.value === '' ? null : parseInt(e.target.value)})}
+            style={{
+              ...inputSt, width: '100%', cursor: 'pointer',
+              marginBottom: '7px',
+            }}
+          >
+            {HOURS.map(h => (
+              <option key={h.label} value={h.value ?? ''}
+                style={{ background: '#1a0a2e' }}>
+                {h.label}
+              </option>
+            ))}
+          </select>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
               onClick={() => setForm({...form, gender: 'M'})}
@@ -336,21 +371,16 @@ export default function Home({ onResult, onGoonghap }) {
         </div>
 
         {/* 서비스 선택 */}
-        <div style={{ marginBottom: '10px' }}>
-          <label style={{...labelSt, 
-            fontFamily: "'Jua', sans-serif",
-            fontSize: '14px',
-            color: 'rgba(255,255,255,0.9)',
-          }}>뭐가 궁금해?</label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div style={{ marginBottom: '7px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
             {SERVICES.map(s => (
               <button key={s.value}
                 onClick={() => setForm({...form, service_type: s.value})}
                 style={{
                   display: 'flex', alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '10px 14px',
-                  borderRadius: '14px', border: 'none',
+                  padding: '8px 12px',
+                  borderRadius: '12px', border: 'none',
                   cursor: 'pointer', textAlign: 'left',
                   transition: 'all 0.2s',
                   background: form.service_type === s.value
@@ -415,8 +445,8 @@ export default function Home({ onResult, onGoonghap }) {
           onClick={handleSubmit}
           disabled={loading}
           style={{
-            width: '100%', padding: '16px',
-            borderRadius: '16px', border: 'none', cursor: 'pointer',
+            width: '100%', padding: '13px',
+            borderRadius: '14px', border: 'none', cursor: 'pointer',
             background: loading
               ? 'rgba(167,139,250,0.3)'
               : 'linear-gradient(135deg, #b347ff 0%, #e040fb 35%, #ff4db8 65%, #ff6b9d 100%)',
@@ -445,13 +475,33 @@ export default function Home({ onResult, onGoonghap }) {
         </button>
       </div>
 
-      <p style={{
-        color: 'rgba(255,255,255,0.35)', fontSize: '11px',
+      <div style={{
         marginTop: '12px', textAlign: 'center',
         position: 'relative', zIndex: 1,
       }}>
-        🔒 입력 정보는 저장되지 않아
-      </p>
+        <p style={{
+          color: 'rgba(255,255,255,0.35)', fontSize: '11px',
+          margin: '0 0 4px',
+        }}>
+          🔒 이름 등 개인정보는 수집하지 않아
+        </p>
+        <p style={{
+          color: 'rgba(255,255,255,0.25)', fontSize: '10px',
+          margin: '0 0 4px',
+        }}>
+          생년월일·성별은 서비스 개선 및 맞춤 정보 제공 목적으로 수집됩니다
+        </p>
+        <button
+          onClick={() => window.open('/privacy', '_blank')}
+          style={{
+            background: 'none', border: 'none',
+            color: 'rgba(167,139,250,0.5)', fontSize: '10px',
+            cursor: 'pointer', textDecoration: 'underline',
+            padding: 0,
+          }}>
+          개인정보처리방침
+        </button>
+      </div>
     </div>
   )
 }
