@@ -1,6 +1,6 @@
 venv/
-node_service/node_modules/
-.env
 __pycache__/
 *.pyc
-.DS_Store
+.env
+node_service/node_modules/
+frontend/node_modules/
