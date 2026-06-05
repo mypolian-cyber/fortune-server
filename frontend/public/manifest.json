@@ -1,0 +1,22 @@
+{
+  "name": "후아모 기운 읽기",
+  "short_name": "후아모",
+  "description": "후아모가 당신의 기운을 읽어줄게",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a0a2e",
+  "theme_color": "#a78bfa",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/huamo2.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/huamo2.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

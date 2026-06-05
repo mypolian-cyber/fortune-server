@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>후아모 기운 읽기</title>
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#a78bfa" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="후아모" />
+    <link rel="apple-touch-icon" href="/huamo2.png" />
+    <meta name="description" content="후아모가 당신의 기운을 읽어줄게" />
+    <link rel="icon" type="image/png" href="/huamo2.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&family=Gaegu:wght@400;700&family=Jua&display=swap" rel="stylesheet">
+    <style>
+      .title-font {
+        font-family: 'Jua', 'Noto Sans KR', sans-serif !important;
+      }
+    </style>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        background: #1a0533;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+      .bg-animate {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        background: linear-gradient(135deg, #1a0533 0%, #2d1b69 25%, #1e3a5f 50%, #2d1b69 75%, #3d0d4e 100%);
+        background-size: 400% 400%;
+        animation: gradientShift 8s ease infinite;
+      }
+      @keyframes gradientShift {
+        0%   { background-position: 0% 50%; }
+        50%  { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+      .particles {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        overflow: hidden;
+      }
+      .particle {
+        position: absolute;
+        border-radius: 50%;
+        animation: float linear infinite;
+      }
+      @keyframes float {
+        0%   { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+        10%  { opacity: 1; }
+        90%  { opacity: 1; }
+        100% { transform: translateY(-100px) rotate(720deg); opacity: 0; }
+      }
+      .star {
+        position: absolute;
+        animation: twinkle ease-in-out infinite;
+        font-size: 14px;
+      }
+      @keyframes twinkle {
+        0%, 100% { opacity: 0.2; transform: scale(0.8); }
+        50%       { opacity: 1;   transform: scale(1.2); }
+      }
+      .glow-orb {
+        position: fixed;
+        border-radius: 50%;
+        filter: blur(60px);
+        pointer-events: none;
+        z-index: 0;
+        animation: orbFloat ease-in-out infinite;
+      }
+      @keyframes orbFloat {
+        0%, 100% { transform: translate(0, 0); }
+        33%       { transform: translate(30px, -20px); }
+        66%       { transform: translate(-20px, 30px); }
+      }
+      #root { position: relative; z-index: 1; }
+    </style>
+  </head>
+  <body>
+    <div class="bg-animate"></div>
+    <div class="particles" id="particles"></div>
+    <div class="glow-orb" style="width:400px;height:400px;background:rgba(167,139,250,0.15);top:-100px;left:-100px;animation-duration:7s;"></div>
+    <div class="glow-orb" style="width:300px;height:300px;background:rgba(236,72,153,0.12);bottom:-50px;right:-50px;animation-duration:9s;"></div>
+    <div class="glow-orb" style="width:250px;height:250px;background:rgba(56,189,248,0.1);top:40%;left:-80px;animation-duration:11s;"></div>
+    <div id="root"></div>
+    <script>
+      // 파티클 생성
+      const container = document.getElementById('particles')
+      const stars = ['✦','✧','⋆','✦','✧','⋆','✦','✧','✦','✧']
+      const colors = ['#a78bfa','#ec4899','#38bdf8','#f472b6','#818cf8']
+      
+      // 별 파티클
+      for (let i = 0; i < 15; i++) {
+        const star = document.createElement('div')
+        star.className = 'star'
+        star.textContent = stars[i % stars.length]
+        star.style.cssText = `
+          left: ${Math.random() * 100}%;
+          top: ${Math.random() * 100}%;
+          color: ${colors[i % colors.length]};
+          animation-duration: ${2 + Math.random() * 3}s;
+          animation-delay: ${Math.random() * 3}s;
+          opacity: 0.5;
+          font-size: ${8 + Math.random() * 10}px;
+        `
+        container.appendChild(star)
+      }
+
+      // 원형 파티클
+      for (let i = 0; i < 8; i++) {
+        const p = document.createElement('div')
+        p.className = 'particle'
+        const size = 4 + Math.random() * 8
+        p.style.cssText = `
+          left: ${Math.random() * 100}%;
+          width: ${size}px;
+          height: ${size}px;
+          background: ${colors[i % colors.length]};
+          opacity: 0.4;
+          animation-duration: ${8 + Math.random() * 12}s;
+          animation-delay: ${Math.random() * 8}s;
+        `
+        container.appendChild(p)
+      }
+    </script>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
