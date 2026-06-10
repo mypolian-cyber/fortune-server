@@ -23,7 +23,7 @@ const LABEL_MAP = {
 export function MonthlyWaveChart({ data, dataB, originType }) {
   if (!data || data.length === 0) return null
 
-  const toValue = d => (d.EI + d.SN + (100 - d.TF) + (100 - d.JP)) / 4
+  const toValue = d => { const s = d.quality_score !== undefined ? d.quality_score : 0; return Math.round((s + 2) / 4 * 80) + 10 }
 
   const chartData = data.map((d, i) => ({
     month:  d.month,
@@ -116,7 +116,7 @@ export function MonthlyWaveChart({ data, dataB, originType }) {
 export function DaewoonWaveChart({ data, dataB, originType }) {
   if (!data || data.length === 0) return null
 
-  const toValue = d => (d.EI + d.SN + (100 - d.TF) + (100 - d.JP)) / 4
+  const toValue = d => { const s = d.quality_score !== undefined ? d.quality_score : 0; return Math.round((s + 2) / 4 * 80) + 10 }
 
   const chartData = data.map((d, i) => ({
     age:    d.age_label,

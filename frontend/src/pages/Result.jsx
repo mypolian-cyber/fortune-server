@@ -136,7 +136,6 @@ function renderReading(text) {
 export default function Result({ data, onBack, onGoonghap, onServiceChange, onUpgrade }) {
   const [showRaw, setShowRaw] = useState(false)
   const isGoonghap = data?.type === 'goonghap'
-  const isYukim = data?.type === 'yukim' || serviceType === 'yukim'
   const reading = data?.reading || ''
   const gReading = data?.reading || data?.goonghap_reading || ''
   const personA = isGoonghap ? (data?.person_a || {}) : data
@@ -150,6 +149,7 @@ export default function Result({ data, onBack, onGoonghap, onServiceChange, onUp
   const mbtiDataB = personB?.mbti || {}
   const form = data?.form || data?.formA || {}
   const serviceType = isGoonghap ? 'goonghap' : (data?.type === 'yukim' ? 'yukim' : (form?.service_type || 'year'))
+  const isYukim = serviceType === 'yukim' || data?.type === 'yukim'
   const originType = mbtiData?.origin_type || ''
   const currentType = mbtiData?.current_period_type || mbtiData?.current_type || originType
   const originTypeB = mbtiDataB?.origin_type || ''
@@ -425,6 +425,36 @@ export default function Result({ data, onBack, onGoonghap, onServiceChange, onUp
           background: 'transparent', color: 'rgba(255,255,255,0.5)',
           fontSize: '14px', cursor: 'pointer',
         }}>
+        {/* 저장/인쇄 버튼 */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+          <button onClick={(e) => { e.stopPropagation(); window.print(); }} style={{
+            flex: 1, padding: '12px',
+            borderRadius: '12px', border: '1px solid rgba(167,139,250,0.3)',
+            background: 'rgba(167,139,250,0.1)',
+            color: 'rgba(255,255,255,0.7)',
+            cursor: 'pointer', fontSize: '13px', fontWeight: '600',
+          }}>
+            🖨️ 인쇄하기
+          </button>
+          <button onClick={(e) => {
+            e.stopPropagation();
+            const el = document.querySelector("#root")
+            const text = el ? el.innerText : document.body.innerText
+            const blob = new Blob([text], { type: "text/plain;charset=utf-8" })
+            const a = document.createElement("a")
+            a.href = URL.createObjectURL(blob)
+            a.download = "후아모_운세결과.txt"
+            a.click()
+          }} style={{
+            flex: 1, padding: '12px',
+            borderRadius: '12px', border: '1px solid rgba(167,139,250,0.3)',
+            background: 'rgba(167,139,250,0.1)',
+            color: 'rgba(255,255,255,0.7)',
+            cursor: 'pointer', fontSize: '13px', fontWeight: '600',
+          }}>
+            💾 저장하기
+          </button>
+        </div>
           다시 볼게 🤍
         </button>
       </div>

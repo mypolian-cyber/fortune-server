@@ -76,6 +76,7 @@ export default function Yukim({ onResult, onBack, preFill }) {
         question_items: selectedItems,
         question_text: questionText || `${selectedType} - ${selectedItems.join(', ')}`,
       })
+      console.log('육임 결과:', result)
       onResult({ ...result, type: 'yukim', form: preFill })
     } catch (e) {
       setError('앗, 뭔가 잘못됐어. 다시 시도해봐 🤍')

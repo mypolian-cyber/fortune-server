@@ -77,7 +77,7 @@ export default function App() {
     const freeServices = ['year']
     const serviceType  = data.form?.service_type
 
-    if (freeServices.includes(serviceType) || TEST_MODE) {
+    if (freeServices.includes(serviceType) || TEST_MODE || isPaidToday(serviceType, data.form)) {
       setSajuData(data)
       setPage('result')
     } else {
@@ -110,6 +110,29 @@ export default function App() {
   const handlePaymentSuccess = () => {
     setShowPayment(false)
     setPage('result')
+    // 오늘 결제한 서비스 localStorage에 저장
+    try {
+      const today = new Date().toISOString().split('T')[0]
+      const key = `paid_${today}`
+      const paid = JSON.parse(localStorage.getItem(key) || '[]')
+      const form = sajuData?.form || sajuData?.formA || {}
+      const serviceKey = `${form.year}_${form.month}_${form.day}_${form.gender}_${pendingService}`
+      if (!paid.includes(serviceKey)) {
+        paid.push(serviceKey)
+        localStorage.setItem(key, JSON.stringify(paid))
+      }
+    } catch(e) {}
+  }
+
+  // 오늘 결제 여부 확인
+  const isPaidToday = (serviceType, form) => {
+    try {
+      const today = new Date().toISOString().split('T')[0]
+      const key = `paid_${today}`
+      const paid = JSON.parse(localStorage.getItem(key) || '[]')
+      const serviceKey = `${form?.year}_${form?.month}_${form?.day}_${form?.gender}_${serviceType}`
+      return paid.includes(serviceKey)
+    } catch(e) { return false }
   }
 
   const goHome = () => {
@@ -134,7 +157,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen">
-      {page === 'home' && <Home onResult={goResult} onGoonghap={goGoonghap} />}
+      {page === 'home' && <Home onResult={goResult} onGoonghap={goGoonghap} onYukim={goYukim} />}
       {page === 'yukim' && (
         <Yukim
           onResult={(data) => {
@@ -167,6 +190,8 @@ export default function App() {
           onServiceChange={(serviceType) => {
             if (serviceType === 'goonghap') {
               goGoonghap()
+            } else if (serviceType === 'yukim') {
+              goYukim(sajuData?.form || sajuData?.formA)
             } else if (TEST_MODE) {
               loadPaidResult(null, serviceType)
             } else {

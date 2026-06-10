@@ -40,7 +40,7 @@ const LOADING_MESSAGES = [
   '거의 다 됐어, 조금만 기다려... ⭐',
 ]
 
-export default function Home({ onResult, onGoonghap }) {
+export default function Home({ onResult, onGoonghap, onYukim }) {
   const [loadingMsg, setLoadingMsg] = useState(0)
   const [form, setForm] = useState({
     year: '', month: '', day: '',
@@ -71,6 +71,14 @@ export default function Home({ onResult, onGoonghap }) {
     // 궁합은 별도 페이지로
     if (form.service_type === 'goonghap') {
       onGoonghap && onGoonghap(form)
+      return
+    }
+    if (form.service_type === 'yukim') {
+      onYukim && onYukim(form)
+      return
+    }
+    if (form.service_type === 'yukim') {
+      onYukim && onYukim(form)
       return
     }
 
