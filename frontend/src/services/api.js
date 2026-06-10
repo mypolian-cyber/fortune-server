@@ -34,3 +34,13 @@ export async function calculateGoonghap(data) {
   if (!res.ok) throw new Error('궁합 계산 실패')
   return res.json()
 }
+
+export async function calculateYukim(data) {
+  const res = await fetch('/api/yukim/calculate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error('육임 계산 실패')
+  return res.json()
+}

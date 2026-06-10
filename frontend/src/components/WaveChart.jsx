@@ -192,15 +192,15 @@ export function DaewoonWaveChart({ data, dataB, originType }) {
             axisLine={false} tickLine={false} />
           <YAxis hide={true} domain={[0, 80]} />
           <Tooltip content={<CustomTooltip />} />
-          <Bar dataKey="valueA" shape={<CustomBar />} fill="#38bdf8">
+          <Bar dataKey="valueA" radius={[4,4,0,0]}>
             {chartData.map((entry, i) => (
-              <Cell key={i} fill={COLOR_MAP[entry.color]} />
+              <Cell key={i} fill={dataB ? '#38bdf8' : (COLOR_MAP[entry.color] || '#38bdf8')} opacity={0.85} />
             ))}
           </Bar>
           {dataB && (
-            <Bar dataKey="valueB" fill="#f472b6" opacity={0.6} radius={[4,4,0,0]}>
+            <Bar dataKey="valueB" radius={[4,4,0,0]}>
               {chartData.map((entry, i) => (
-                <Cell key={i} fill={COLOR_MAP[entry.colorB] || '#f472b6'} opacity={0.6} />
+                <Cell key={i} fill="#f472b6" opacity={0.75} />
               ))}
             </Bar>
           )}

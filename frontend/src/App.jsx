@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import Home from './pages/Home'
 import Goonghap from './pages/Goonghap'
+import Yukim from './pages/Yukim'
 import Result from './pages/Result'
 import PaymentModal from './components/Payment'
 import ContactModal from './components/Contact'
@@ -10,6 +11,7 @@ export default function App() {
   const [page, setPage] = useState('home')
   const [goonghapData, setGoonghapData] = useState(null)
   const [goonghapPreFill, setGoonghapPreFill] = useState(null)
+  const [yukimPreFill, setYukimPreFill] = useState(null)
   const [sajuData, setSajuData] = useState(null)
   const [showPayment, setShowPayment] = useState(false)
   const [pendingService, setPendingService] = useState(null)
@@ -85,6 +87,10 @@ export default function App() {
     }
   }
 
+  const goYukim = (formData = null) => {
+    setPage('yukim')
+    if (formData) setYukimPreFill(formData)
+  }
   const goGoonghap = (formData = null) => {
     setPage('goonghap')
     if (formData) setGoonghapPreFill(formData)
@@ -92,7 +98,7 @@ export default function App() {
 
   const handleGoonghapResult = (data) => {
     setGoonghapData(data)
-    setSajuData(data.person_a)
+    setSajuData({ ...data, form: data.formA })
     if (TEST_MODE) {
       setPage('result')
     } else {
@@ -111,6 +117,7 @@ export default function App() {
     setSajuData(null)
     setShowPayment(false)
     setPendingService(null)
+    setYukimPreFill(null)
   }
 
   // 결제 후 유료 서비스 업그레이드 (결과 화면에서 유료 버튼 클릭시)
@@ -128,6 +135,21 @@ export default function App() {
   return (
     <div className="min-h-screen">
       {page === 'home' && <Home onResult={goResult} onGoonghap={goGoonghap} />}
+      {page === 'yukim' && (
+        <Yukim
+          onResult={(data) => {
+            setSajuData(data)
+            if (TEST_MODE) {
+              setPage('result')
+            } else {
+              setPendingService('yukim')
+              setShowPayment(true)
+            }
+          }}
+          onBack={goHome}
+          preFill={yukimPreFill}
+        />
+      )}
       {page === 'goonghap' && (
         <Goonghap
           onResult={handleGoonghapResult}

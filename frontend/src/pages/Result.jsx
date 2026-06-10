@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MonthlyWaveChart } from '../components/WaveChart'
+import { MonthlyWaveChart, DaewoonWaveChart } from '../components/WaveChart'
 
 const SECTION_COLORS = {
   '📊': { border: '#6366f1', color: '#a5b4fc', bg: 'rgba(99,102,241,0.12)' },
@@ -33,6 +33,15 @@ const SECTION_COLORS = {
   '💪': { border: '#10b981', color: '#6ee7b7', bg: 'rgba(16,185,129,0.12)' },
   '🚧': { border: '#ef4444', color: '#fca5a5', bg: 'rgba(239,68,68,0.12)' },
   '⏰': { border: '#facc15', color: '#fef08a', bg: 'rgba(250,204,21,0.12)' },
+  '💌': { border: '#ec4899', color: '#f9a8d4', bg: 'rgba(236,72,153,0.12)' },
+  '🔥': { border: '#ef4444', color: '#fca5a5', bg: 'rgba(239,68,68,0.12)' },
+  '👨': { border: '#f97316', color: '#fdba74', bg: 'rgba(249,115,22,0.12)' },
+  '⭐': { border: '#facc15', color: '#fef08a', bg: 'rgba(250,204,21,0.12)' },
+  '🌅': { border: '#f59e0b', color: '#fcd34d', bg: 'rgba(234,179,8,0.12)' },
+  '🏆': { border: '#facc15', color: '#fef08a', bg: 'rgba(250,204,21,0.12)' },
+  '💔': { border: '#ef4444', color: '#fca5a5', bg: 'rgba(239,68,68,0.12)' },
+  '🌈': { border: '#6366f1', color: '#a5b4fc', bg: 'rgba(99,102,241,0.12)' },
+  '🤍': { border: '#a78bfa', color: '#ddd6fe', bg: 'rgba(167,139,250,0.12)' },
   '📊': { border: '#6366f1', color: '#a5b4fc', bg: 'rgba(99,102,241,0.12)' },
 }
 
@@ -126,19 +135,25 @@ function renderReading(text) {
 
 export default function Result({ data, onBack, onGoonghap, onServiceChange, onUpgrade }) {
   const [showRaw, setShowRaw] = useState(false)
-
   const isGoonghap = data?.type === 'goonghap'
+  const isYukim = data?.type === 'yukim' || serviceType === 'yukim'
   const reading = data?.reading || ''
-  const gReading = data?.goonghap_reading || ''
-  const pillars = data?.pillars || []
-  const daewoon = data?.daewoon || []
-  const monthlyChart = data?.monthly_chart || []
-  const mbtiData = data?.mbti_data || {}
-  const form = data?.form || {}
-  const serviceType = form?.service_type || 'year'
-
+  const gReading = data?.reading || data?.goonghap_reading || ''
+  const personA = isGoonghap ? (data?.person_a || {}) : data
+  const personB = isGoonghap ? (data?.person_b || {}) : null
+  const pillars = personA?.saju?.pillars || data?.pillars || []
+  const daewoon = personA?.saju?.daewoon || data?.daewoon || []
+  const monthlyChart = personA?.monthly_chart || data?.monthly_chart || []
+  const daewoonChartA = personA?.daewoon_chart || []
+  const daewoonChartB = personB?.daewoon_chart || []
+  const mbtiData = personA?.mbti || data?.mbti || data?.mbti_data || {}
+  const mbtiDataB = personB?.mbti || {}
+  const form = data?.form || data?.formA || {}
+  const serviceType = isGoonghap ? 'goonghap' : (data?.type === 'yukim' ? 'yukim' : (form?.service_type || 'year'))
   const originType = mbtiData?.origin_type || ''
-  const currentType = mbtiData?.current_type || ''
+  const currentType = mbtiData?.current_period_type || mbtiData?.current_type || originType
+  const originTypeB = mbtiDataB?.origin_type || ''
+  const currentTypeB = mbtiDataB?.current_period_type || mbtiDataB?.current_type || originTypeB
 
   const NEXT_PRODUCTS = {
     year: [
@@ -190,8 +205,41 @@ export default function Result({ data, onBack, onGoonghap, onServiceChange, onUp
           </div>
         </div>
 
-        {/* MBTI 카드 */}
-        {originType && (
+        {/* MBTI 카드 — 궁합일 때 두 사람 나란히 */}
+        {isGoonghap && originTypeB && (
+          <div style={{
+            display: 'flex', gap: '8px', marginBottom: '16px',
+          }}>
+            {/* 나 */}
+            <div style={{
+              flex: 1,
+              background: 'rgba(30,10,60,0.8)',
+              border: '1px solid rgba(56,189,248,0.3)',
+              borderRadius: '16px', padding: '12px',
+            }}>
+              <div style={{ color: 'rgba(56,189,248,0.7)', fontSize: '11px', marginBottom: '6px', fontWeight: '700' }}>🙋 나</div>
+              <div style={{ color: '#38bdf8', fontSize: '22px', fontWeight: '900' }}>{originType}</div>
+              <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px', margin: '4px 0' }}>→</div>
+              <div style={{ color: '#f472b6', fontSize: '18px', fontWeight: '700' }}>{currentType}</div>
+              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '10px', marginTop: '4px' }}>지금 이 시기</div>
+            </div>
+            {/* 상대방 */}
+            <div style={{
+              flex: 1,
+              background: 'rgba(30,10,60,0.8)',
+              border: '1px solid rgba(244,114,182,0.3)',
+              borderRadius: '16px', padding: '12px',
+            }}>
+              <div style={{ color: 'rgba(244,114,182,0.7)', fontSize: '11px', marginBottom: '6px', fontWeight: '700' }}>🧑 상대방</div>
+              <div style={{ color: '#f472b6', fontSize: '22px', fontWeight: '900' }}>{originTypeB}</div>
+              <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px', margin: '4px 0' }}>→</div>
+              <div style={{ color: '#a78bfa', fontSize: '18px', fontWeight: '700' }}>{currentTypeB}</div>
+              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '10px', marginTop: '4px' }}>지금 이 시기</div>
+            </div>
+          </div>
+        )}
+        {/* MBTI 카드 — 일반 */}
+        {!isGoonghap && !isYukim && originType && (
           <div style={{
             background: 'rgba(30,10,60,0.8)',
             border: '1px solid rgba(150,80,255,0.3)',
@@ -253,7 +301,24 @@ export default function Result({ data, onBack, onGoonghap, onServiceChange, onUp
         )}
 
         {/* 월별 차트 */}
-        {monthlyChart.length > 0 && (
+        {/* 궁합 두 사람 대운 차트 */}
+        {isGoonghap && daewoonChartA.length > 0 && (
+          <div style={{
+            background: 'rgba(20,8,50,0.85)',
+            border: '1px solid rgba(150,80,255,0.2)',
+            borderRadius: '16px', padding: '16px', marginBottom: '16px',
+          }}>
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', marginBottom: '4px', fontWeight: '700' }}>
+              📊 두 사람 평생 에너지 흐름
+            </div>
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '8px', fontSize: '11px' }}>
+              <span style={{ color: '#38bdf8' }}>● 나</span>
+              <span style={{ color: '#f472b6' }}>● 상대방</span>
+            </div>
+            <DaewoonWaveChart data={daewoonChartA} dataB={daewoonChartB} originType="goonghap" />
+          </div>
+        )}
+        {monthlyChart.length > 0 && !isGoonghap && !isYukim && (
           <div style={{
             background: 'rgba(30,10,60,0.8)',
             border: '1px solid rgba(150,80,255,0.3)',

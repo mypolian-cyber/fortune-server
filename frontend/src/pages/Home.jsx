@@ -70,7 +70,7 @@ export default function Home({ onResult, onGoonghap }) {
     }
     // 궁합은 별도 페이지로
     if (form.service_type === 'goonghap') {
-      onGoonghap && onGoonghap()
+      onGoonghap && onGoonghap(form)
       return
     }
 

@@ -52,7 +52,14 @@ const LOADING_MESSAGES = [
 ]
 
 export default function Goonghap({ onResult, onBack, preFill }) {
-  const [personA, setPersonA] = useState(emptyForm())
+  const [personA, setPersonA] = useState(preFill ? {
+    year: String(preFill.year || ''),
+    month: String(preFill.month || ''),
+    day: String(preFill.day || ''),
+    hour: preFill.hour ?? null,
+    gender: preFill.gender || 'M',
+    calendar: preFill.calendar || 'solar',
+  } : emptyForm())
   const [personB, setPersonB] = useState(emptyForm())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -117,6 +124,65 @@ export default function Goonghap({ onResult, onBack, preFill }) {
   }
 
   return (
+    <div style={{ position: 'relative' }}>
+      {loading && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(5,0,20,0.93)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999,
+        }}>
+          <img src="/huamo2.png" alt="후아모" style={{
+            width: '90px', height: '90px', objectFit: 'contain',
+            marginBottom: '24px',
+            filter: 'drop-shadow(0 0 30px rgba(167,139,250,0.9))',
+            animation: 'huamoPulse 1.5s ease-in-out infinite',
+          }} />
+          <div style={{ fontSize: '22px', letterSpacing: '8px', marginBottom: '16px' }}>
+            {['✦','✧','✦','✧','✦'].map((s,i) => (
+              <span key={i} style={{
+                display: 'inline-block',
+                animation: `twinkle 1.2s ease-in-out ${i*0.2}s infinite`,
+              }}>{s}</span>
+            ))}
+          </div>
+          <div style={{
+            color: '#e0aaff', fontSize: '15px', fontWeight: '700',
+            textAlign: 'center', padding: '0 32px',
+            textShadow: '0 0 20px rgba(167,139,250,0.8)',
+          }}>
+            {LOADING_MESSAGES[loadingMsg]}
+          </div>
+          <div style={{
+            width: '180px', height: '3px',
+            background: 'rgba(255,255,255,0.1)',
+            borderRadius: '99px', marginTop: '20px', overflow: 'hidden',
+          }}>
+            <div style={{
+              height: '100%',
+              background: 'linear-gradient(90deg, #a78bfa, #ec4899)',
+              borderRadius: '99px',
+              animation: 'loadingProgress 2s ease-in-out infinite',
+            }} />
+          </div>
+          <style>{`
+            @keyframes huamoPulse {
+              0%,100% { transform:scale(1); }
+              50% { transform:scale(1.1); }
+            }
+            @keyframes twinkle {
+              0%,100% { opacity:0.3; transform:scale(0.9); }
+              50% { opacity:1; transform:scale(1.2); }
+            }
+            @keyframes loadingProgress {
+              0% { width:0%; }
+              100% { width:100%; }
+            }
+          `}</style>
+        </div>
+      )}
     <div style={{
       minHeight: '100dvh',
       background: 'linear-gradient(160deg, #1a0a2e 0%, #16213e 50%, #0f3460 100%)',
@@ -203,6 +269,7 @@ export default function Goonghap({ onResult, onBack, preFill }) {
         </button>
       </div>
     </div>
+    </div>
   )
 }
 
@@ -280,6 +347,41 @@ function PersonForm({ label, emoji, color, form, setForm, hours }) {
             </option>
           ))}
         </select>
+      </div>
+
+      {/* 양력/음력 */}
+      <div style={{ marginBottom: '10px' }}>
+        <label style={labelSt}>양력 / 음력</label>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={() => setForm({...form, calendar: 'solar'})}
+            style={{
+              flex: 1, padding: '9px',
+              borderRadius: '10px', border: 'none',
+              cursor: 'pointer', fontSize: '12px', fontWeight: '700',
+              background: (form.calendar || 'solar') === 'solar'
+                ? 'linear-gradient(135deg, #a78bfa, #7c3aed)'
+                : 'rgba(255,255,255,0.06)',
+              color: '#fff',
+            }}
+          >
+            ☀️ 양력
+          </button>
+          <button
+            onClick={() => setForm({...form, calendar: 'lunar'})}
+            style={{
+              flex: 1, padding: '9px',
+              borderRadius: '10px', border: 'none',
+              cursor: 'pointer', fontSize: '12px', fontWeight: '700',
+              background: (form.calendar || 'solar') === 'lunar'
+                ? 'linear-gradient(135deg, #f472b6, #ec4899)'
+                : 'rgba(255,255,255,0.06)',
+              color: '#fff',
+            }}
+          >
+            🌙 음력
+          </button>
+        </div>
       </div>
 
       {/* 성별 */}
