@@ -10,7 +10,7 @@ from app.engines.mbti_engine import (
     calculate_origin_score, score_to_mbti,
     get_mbti_label, calculate_period_score
 )
-from app.services.claude_service import generate_reading
+from app.services.gpt_service import generate_reading
 from app.engines.monthly_engine import (
     get_monthly_chart_data,
     get_daewoon_chart_data
@@ -31,6 +31,8 @@ class SajuRequest(BaseModel):
     gender: str
     service_type: str = "year"
     target_year: Optional[int] = None
+    calendar: str = "solar"
+    is_leap: bool = False
 
 @router.post("/calculate")
 async def calculate_saju(req: SajuRequest, db: AsyncSession = Depends(get_db)):
@@ -58,7 +60,9 @@ async def calculate_saju(req: SajuRequest, db: AsyncSession = Depends(get_db)):
                     json={
                         "year": req.year, "month": req.month,
                         "day": req.day, "hour": req.hour,
-                        "minute": req.minute, "gender": req.gender
+                        "minute": req.minute, "gender": req.gender,
+                        "calendar": req.calendar,
+                        "isLeap": req.is_leap,
                     },
                     timeout=10.0
                 )
@@ -105,6 +109,7 @@ async def calculate_saju(req: SajuRequest, db: AsyncSession = Depends(get_db)):
                 origin_scores, {"stem": stem, "branch": branch}
             )
 
+    daewoon_chart = get_daewoon_chart_data(origin_scores, mbti_type, daewoon_list=daewoon or [])
     mbti_data = {
         "origin_scores": origin_scores,
         "origin_type": mbti_type,
@@ -112,6 +117,7 @@ async def calculate_saju(req: SajuRequest, db: AsyncSession = Depends(get_db)):
         "current_daewoon": current_daewoon,
         "current_period_scores": current_period_scores,
         "current_period_type": score_to_mbti(current_period_scores),
+        "daewoon_chart": daewoon_chart,
     }
 
     # 6. 풀이 캐시 확인

@@ -22,11 +22,41 @@ const emptyForm = () => ({
   hour: null, gender: 'M', calendar: 'solar'
 })
 
-export default function Goonghap({ onResult, onBack }) {
+const labelSt = {
+  color: 'rgba(200,180,255,0.9)',
+  fontSize: '12px',
+  fontWeight: '600',
+  display: 'block',
+  marginBottom: '6px',
+  letterSpacing: '0.5px',
+}
+
+const inputSt = {
+  width: '100%',
+  padding: '10px 12px',
+  borderRadius: '10px',
+  border: '1px solid rgba(167,139,250,0.3)',
+  background: 'rgba(255,255,255,0.06)',
+  color: '#fff',
+  fontSize: '14px',
+  outline: 'none',
+}
+
+const LOADING_MESSAGES = [
+  '두 사람의 기운을 읽는 중... ✨',
+  '별자리를 맞춰보는 중... 🌙',
+  '두 사람의 에너지를 비교하는 중... 💫',
+  '궁합을 분석하는 중... 🔮',
+  '후아모가 열심히 읽고 있어... 🤍',
+  '거의 다 됐어, 조금만 기다려... ⭐',
+]
+
+export default function Goonghap({ onResult, onBack, preFill }) {
   const [personA, setPersonA] = useState(emptyForm())
   const [personB, setPersonB] = useState(emptyForm())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [loadingMsg, setLoadingMsg] = useState(0)
 
   const validate = (form, label) => {
     if (!form.year || !form.month || !form.day) {
@@ -46,6 +76,10 @@ export default function Goonghap({ onResult, onBack }) {
 
     setError('')
     setLoading(true)
+    setLoadingMsg(0)
+    const msgInterval = setInterval(() => {
+      setLoadingMsg(prev => (prev + 1) % LOADING_MESSAGES.length)
+    }, 1800)
     try {
       const result = await calculateGoonghap({
         person_a: {
@@ -55,6 +89,7 @@ export default function Goonghap({ onResult, onBack }) {
           hour: personA.hour,
           minute: 0,
           gender: personA.gender,
+          calendar: personA.calendar || 'solar',
         },
         person_b: {
           year: parseInt(personB.year),
@@ -63,6 +98,7 @@ export default function Goonghap({ onResult, onBack }) {
           hour: personB.hour,
           minute: 0,
           gender: personB.gender,
+          calendar: personB.calendar || 'solar',
         },
         target_year: new Date().getFullYear()
       })
@@ -76,6 +112,7 @@ export default function Goonghap({ onResult, onBack }) {
       setError('앗, 뭔가 잘못됐어. 다시 시도해봐 🤍')
     } finally {
       setLoading(false)
+      clearInterval(msgInterval)
     }
   }
 
@@ -287,20 +324,5 @@ function PersonForm({ label, emoji, color, form, setForm, hours }) {
   )
 }
 
-const labelSt = {
-  color: 'rgba(255,255,255,0.5)',
-  fontSize: '11px',
-  display: 'block',
-  marginBottom: '5px',
-}
 
-const inputSt = {
-  background: 'rgba(255,255,255,0.07)',
-  border: '1px solid rgba(255,255,255,0.1)',
-  borderRadius: '10px',
-  padding: '9px 10px',
-  color: '#fff',
-  fontSize: '13px',
-  outline: 'none',
-  boxSizing: 'border-box',
-}
+// cache bust Thu Jun 11 01:24:45 KST 2026

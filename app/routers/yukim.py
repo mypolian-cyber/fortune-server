@@ -195,8 +195,8 @@ async def generate_yukim_reading(
     gender: str,
     mbti_type: str = None
 ) -> str:
-    api_key = os.getenv("ANTHROPIC_API_KEY", "")
-    if not api_key or api_key == "your_api_key_here":
+    api_key = os.getenv("GOOGLE_API_KEY", "")
+    if not api_key:
         return _dummy_reading(yukim_result, question_type, question_items)
 
     prompt = build_yukim_prompt(
@@ -206,21 +206,21 @@ async def generate_yukim_reading(
 
     async with httpx.AsyncClient() as client:
         response = await client.post(
-            "https://api.anthropic.com/v1/messages",
-            headers={
-                "x-api-key": api_key,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json"
-            },
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}",
+            headers={"content-type": "application/json"},
             json={
-                "model": "claude-sonnet-4-20250514",
-                "max_tokens": 2000,
-                "messages": [{"role": "user", "content": prompt}]
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "maxOutputTokens": 2000,
+                    "temperature": 0.9,
+                }
             },
-            timeout=30.0
+            timeout=40.0
         )
         result = response.json()
-        return result["content"][0]["text"]
+        if response.status_code != 200:
+            raise Exception(f"Gemini API 오류: {result.get('error', {}).get('message', '')}")
+        return result["candidates"][0]["content"]["parts"][0]["text"]
 
 
 def _dummy_reading(yukim_result: dict, question_type: str, question_items: list) -> str:

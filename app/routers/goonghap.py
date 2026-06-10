@@ -19,7 +19,7 @@ from app.services.cache_service import (
     make_cache_key, get_saju_cache, set_saju_cache,
     get_reading_cache, set_reading_cache
 )
-from app.services.claude_service import generate_goonghap_reading
+from app.services.gpt_service import generate_reading
 
 router = APIRouter()
 
@@ -139,11 +139,19 @@ async def calculate_goonghap_result(req: GoonghapRequest, db: AsyncSession = Dep
     if reading_cached:
         reading = reading_cached.reading
     else:
-        reading = await generate_goonghap_reading(
-            person_a=person_a,
-            person_b=person_b,
-            goonghap_score=goonghap_score,
-            target_year=target_year
+        # daewoon_chart를 mbti_data에 추가해서 전달
+        mbti_a = dict(person_a.get("mbti", {}))
+        mbti_a["daewoon_chart"] = person_a.get("daewoon_chart", [])
+        mbti_b = dict(person_b.get("mbti", {}))
+        mbti_b["daewoon_chart"] = person_b.get("daewoon_chart", [])
+        reading = await generate_reading(
+            service_type="goonghap",
+            saju_data=person_a.get("saju", {}),
+            mbti_data=mbti_a,
+            gender=req.person_a.gender,
+            target_year=target_year,
+            mbti_data_2=mbti_b,
+            gender_2=req.person_b.gender,
         )
         await set_reading_cache(db, combined_key, "goonghap", reading, target_year)
 

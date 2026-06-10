@@ -9,6 +9,7 @@ import { calculateSaju, verifyPayment } from './services/api'
 export default function App() {
   const [page, setPage] = useState('home')
   const [goonghapData, setGoonghapData] = useState(null)
+  const [goonghapPreFill, setGoonghapPreFill] = useState(null)
   const [sajuData, setSajuData] = useState(null)
   const [showPayment, setShowPayment] = useState(false)
   const [pendingService, setPendingService] = useState(null)
@@ -68,11 +69,13 @@ export default function App() {
     }
   }
 
+  const TEST_MODE = import.meta.env.VITE_TEST_MODE === 'true'
+
   const goResult = (data) => {
     const freeServices = ['year']
     const serviceType  = data.form?.service_type
 
-    if (freeServices.includes(serviceType)) {
+    if (freeServices.includes(serviceType) || TEST_MODE) {
       setSajuData(data)
       setPage('result')
     } else {
@@ -82,13 +85,20 @@ export default function App() {
     }
   }
 
-  const goGoonghap = () => setPage('goonghap')
+  const goGoonghap = (formData = null) => {
+    setPage('goonghap')
+    if (formData) setGoonghapPreFill(formData)
+  }
 
   const handleGoonghapResult = (data) => {
     setGoonghapData(data)
-    setPendingService('goonghap')
     setSajuData(data.person_a)
-    setShowPayment(true)
+    if (TEST_MODE) {
+      setPage('result')
+    } else {
+      setPendingService('goonghap')
+      setShowPayment(true)
+    }
   }
 
   const handlePaymentSuccess = () => {
@@ -122,6 +132,7 @@ export default function App() {
         <Goonghap
           onResult={handleGoonghapResult}
           onBack={goHome}
+          preFill={goonghapPreFill}
         />
       )}
       {page === 'result' && (
@@ -129,7 +140,17 @@ export default function App() {
           data={sajuData}
           goonghapData={goonghapData}
           onBack={goHome}
+          onGoonghap={goGoonghap}
           onUpgrade={handleUpgrade}
+          onServiceChange={(serviceType) => {
+            if (serviceType === 'goonghap') {
+              goGoonghap()
+            } else if (TEST_MODE) {
+              loadPaidResult(null, serviceType)
+            } else {
+              handleUpgrade(serviceType)
+            }
+          }}
         />
       )}
       {/* 문의하기 버튼 */}

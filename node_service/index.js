@@ -2,6 +2,22 @@ const express = require('express')
 const app = express()
 app.use(express.json())
 
+const Lunar = require('./node_modules/lunar-javascript/lunar.js')
+
+function lunarToSolar(year, month, day, isLeap = false) {
+  try {
+    const lunar = Lunar.Lunar.fromYmd(year, month, day)
+    const solar = lunar.getSolar()
+    return {
+      year:  solar.getYear(),
+      month: solar.getMonth(),
+      day:   solar.getDay(),
+    }
+  } catch(e) {
+    return { year, month, day }
+  }
+}
+
 async function getSaju(input) {
   const { calculateSaju } = await import('@orrery/core/saju')
   return calculateSaju(input)
@@ -9,13 +25,28 @@ async function getSaju(input) {
 
 app.post('/calculate', async (req, res) => {
   try {
-    const { year, month, day, hour, minute, gender } = req.body
+    const { year, month, day, hour, minute, gender, calendar, isLeap } = req.body
     const hasHour = hour !== null && hour !== undefined
 
+    // 음력이면 양력으로 변환
+    let solarYear  = parseInt(year)
+    let solarMonth = parseInt(month)
+    let solarDay   = parseInt(day)
+
+    if (calendar === 'lunar') {
+      const converted = lunarToSolar(
+        parseInt(year), parseInt(month), parseInt(day),
+        isLeap || false
+      )
+      solarYear  = converted.year
+      solarMonth = converted.month
+      solarDay   = converted.day
+    }
+
     const input = {
-      year:   parseInt(year),
-      month:  parseInt(month),
-      day:    parseInt(day),
+      year:   solarYear,
+      month:  solarMonth,
+      day:    solarDay,
       hour:   hasHour ? parseInt(hour) : 12,
       minute: minute !== null && minute !== undefined ? parseInt(minute) : 0,
       gender: gender
@@ -36,7 +67,12 @@ app.post('/calculate', async (req, res) => {
         specialSals: saju.specialSals,
         gongmang:    saju.gongmang,
         input:       saju.input,
-        hasHour:     hasHour
+        hasHour:     hasHour,
+        solar: {
+          year:  solarYear,
+          month: solarMonth,
+          day:   solarDay,
+        }
       }
     })
   } catch (err) {

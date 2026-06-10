@@ -1,412 +1,367 @@
 import { useState } from 'react'
-import ReactMarkdown from 'react-markdown'
-import { MonthlyWaveChart, DaewoonWaveChart } from '../components/WaveChart'
+import { MonthlyWaveChart } from '../components/WaveChart'
 
-const sectionStyle = {
-  background: 'rgba(255,255,255,0.04)',
-  borderRadius: '20px',
-  padding: '20px',
-  border: '1px solid rgba(255,255,255,0.07)',
-  marginBottom: '16px',
+const SECTION_COLORS = {
+  '📊': { border: '#6366f1', color: '#a5b4fc', bg: 'rgba(99,102,241,0.12)' },
+  '✨': { border: '#eab308', color: '#fde047', bg: 'rgba(234,179,8,0.12)' },
+  '⚠️': { border: '#ef4444', color: '#fca5a5', bg: 'rgba(239,68,68,0.12)' },
+  '📚': { border: '#10b981', color: '#6ee7b7', bg: 'rgba(16,185,129,0.12)' },
+  '💼': { border: '#3b82f6', color: '#93c5fd', bg: 'rgba(59,130,246,0.12)' },
+  '💰': { border: '#f59e0b', color: '#fcd34d', bg: 'rgba(234,179,8,0.12)' },
+  '❤️': { border: '#ec4899', color: '#f9a8d4', bg: 'rgba(236,72,153,0.12)' },
+  '👥': { border: '#8b5cf6', color: '#c4b5fd', bg: 'rgba(139,92,246,0.12)' },
+  '🌿': { border: '#22c55e', color: '#86efac', bg: 'rgba(34,197,94,0.12)' },
+  '🏠': { border: '#f97316', color: '#fdba74', bg: 'rgba(249,115,22,0.12)' },
+  '📅': { border: '#6366f1', color: '#a5b4fc', bg: 'rgba(99,102,241,0.12)' },
+  '⚡': { border: '#facc15', color: '#fef08a', bg: 'rgba(250,204,21,0.12)' },
+  '🌟': { border: '#a78bfa', color: '#ddd6fe', bg: 'rgba(167,139,250,0.12)' },
+  '🎯': { border: '#f97316', color: '#fdba74', bg: 'rgba(249,115,22,0.12)' },
+  '💑': { border: '#ec4899', color: '#f9a8d4', bg: 'rgba(236,72,153,0.12)' },
+  '💫': { border: '#a78bfa', color: '#ddd6fe', bg: 'rgba(167,139,250,0.12)' },
+  '🔑': { border: '#facc15', color: '#fef08a', bg: 'rgba(250,204,21,0.12)' },
+  '🧬': { border: '#10b981', color: '#6ee7b7', bg: 'rgba(16,185,129,0.12)' },
+  '💥': { border: '#ef4444', color: '#fca5a5', bg: 'rgba(239,68,68,0.12)' },
+  '🤫': { border: '#8b5cf6', color: '#c4b5fd', bg: 'rgba(139,92,246,0.12)' },
+  '💍': { border: '#ec4899', color: '#f9a8d4', bg: 'rgba(236,72,153,0.12)' },
+  '🌱': { border: '#22c55e', color: '#86efac', bg: 'rgba(34,197,94,0.12)' },
+  '🌊': { border: '#3b82f6', color: '#93c5fd', bg: 'rgba(59,130,246,0.12)' },
+  '🗺️': { border: '#8b5cf6', color: '#c4b5fd', bg: 'rgba(139,92,246,0.12)' },
+  '💡': { border: '#facc15', color: '#fef08a', bg: 'rgba(250,204,21,0.12)' },
+  '🛡️': { border: '#ef4444', color: '#fca5a5', bg: 'rgba(239,68,68,0.12)' },
+  '🔍': { border: '#6366f1', color: '#a5b4fc', bg: 'rgba(99,102,241,0.12)' },
+  '😔': { border: '#8b5cf6', color: '#c4b5fd', bg: 'rgba(139,92,246,0.12)' },
+  '💪': { border: '#10b981', color: '#6ee7b7', bg: 'rgba(16,185,129,0.12)' },
+  '🚧': { border: '#ef4444', color: '#fca5a5', bg: 'rgba(239,68,68,0.12)' },
+  '⏰': { border: '#facc15', color: '#fef08a', bg: 'rgba(250,204,21,0.12)' },
+  '📊': { border: '#6366f1', color: '#a5b4fc', bg: 'rgba(99,102,241,0.12)' },
 }
 
-const labelStyle = {
-  color: 'rgba(255,255,255,0.4)',
-  fontSize: '11px',
-  letterSpacing: '0.8px',
-  marginBottom: '12px',
-  display: 'block',
+function renderReading(text) {
+  if (!text) return null
+  const lines = text.split('\n')
+  const result = []
+  let currentSection = null
+  let sectionContent = []
+  let currentColor = '#a78bfa'
+
+  const renderTextLine = (line, key) => {
+    if (!line.trim()) return null
+    // **볼드** → 섹션 색상으로
+    const parts = line.split(/\*\*(.+?)\*\*/g)
+    const rendered = parts.length > 1
+      ? parts.map((p, j) => j % 2 === 1
+          ? <span key={j} style={{ color: currentColor, fontWeight: '700' }}>{p}</span>
+          : <span key={j}>{p}</span>)
+      : line
+
+    return (
+      <p key={key} style={{
+        margin: '0 0 10px 0',
+        lineHeight: '1.85',
+        color: 'rgba(255,255,255,0.85)',
+        fontSize: '14px',
+      }}>{rendered}</p>
+    )
+  }
+
+  const flushSection = (idx) => {
+    if (currentSection) {
+      const s = SECTION_COLORS[currentSection.emoji] || { border: '#a78bfa', color: '#ddd6fe', bg: 'rgba(167,139,250,0.12)' }
+      result.push(
+        <div key={`section-${idx}`} style={{
+          background: s.bg,
+          border: `1px solid ${s.border}50`,
+          borderLeft: `4px solid ${s.border}`,
+          borderRadius: '14px',
+          padding: '16px 18px',
+          marginBottom: '16px',
+        }}>
+          <div style={{
+            color: s.color,
+            fontWeight: '800',
+            fontSize: '15px',
+            marginBottom: '12px',
+            textShadow: `0 0 12px ${s.border}80`,
+          }}>
+            {currentSection.title}
+          </div>
+          <div>
+            {sectionContent.map((l, i) => renderTextLine(l, i))}
+          </div>
+        </div>
+      )
+    }
+    sectionContent = []
+    currentSection = null
+  }
+
+  lines.forEach((line, i) => {
+    // 섹션 헤더 감지
+    const emoji = Object.keys(SECTION_COLORS).find(e => line.startsWith(e))
+
+    if (emoji) {
+      flushSection(i)
+      currentSection = { emoji, title: line }
+      currentColor = SECTION_COLORS[emoji]?.color || '#a78bfa'
+    } else if (line.includes('후아모가 이렇게 생각해')) {
+      flushSection(i)
+      result.push(
+        <div key={`header-${i}`} style={{
+          textAlign: 'center',
+          color: '#e0aaff',
+          fontWeight: '700',
+          fontSize: '16px',
+          margin: '8px 0 16px',
+          textShadow: '0 0 12px rgba(167,139,250,0.6)',
+        }}>{line}</div>
+      )
+    } else {
+      sectionContent.push(line)
+    }
+  })
+  flushSection(lines.length)
+
+  return result
 }
 
-export default function Result({ data, goonghapData, onBack }) {
-  const [tab, setTab] = useState('reading')
-  const isGoonghap = goonghapData?.type === 'goonghap'
-  const activeData  = isGoonghap ? goonghapData.person_a : data
-  const { saju, mbti, reading, form } = activeData
-  const gReading    = isGoonghap ? goonghapData.reading   : null
-  const gScore      = isGoonghap ? goonghapData.goonghap  : null
-  const personB     = isGoonghap ? goonghapData.person_b  : null
-  const pillars = saju?.pillars || []
-  const pillarLabels = ['년주', '월주', '일주', '시주']
+export default function Result({ data, onBack, onGoonghap, onServiceChange, onUpgrade }) {
+  const [showRaw, setShowRaw] = useState(false)
+
+  const isGoonghap = data?.type === 'goonghap'
+  const reading = data?.reading || ''
+  const gReading = data?.goonghap_reading || ''
+  const pillars = data?.pillars || []
+  const daewoon = data?.daewoon || []
+  const monthlyChart = data?.monthly_chart || []
+  const mbtiData = data?.mbti_data || {}
+  const form = data?.form || {}
   const serviceType = form?.service_type || 'year'
-  const isPaid = isGoonghap || ['year_full', 'life', 'yukim'].includes(serviceType)
 
-  const handlePrint = () => {
-    window.print()
+  const originType = mbtiData?.origin_type || ''
+  const currentType = mbtiData?.current_type || ''
+
+  const NEXT_PRODUCTS = {
+    year: [
+      { label: '올해 운세 FULL', sub: '월별로 언제 치고 언제 쉴지', price: '990원', type: 'year_full' },
+      { label: '우리 궁합', sub: '우리 왜 이렇게 잘 맞아?', price: '1,990원', type: 'goonghap' },
+    ],
+    year_full: [
+      { label: '우리 궁합', sub: '우리 왜 이렇게 잘 맞아?', price: '1,990원', type: 'goonghap' },
+      { label: '평생 운세', sub: '내가 왜 이런 사람인지 이제 알겠어', price: '3,900원', type: 'life' },
+    ],
+    life: [
+      { label: '올해 운세 FULL', sub: '올해 구체적인 흐름이 궁금해', price: '990원', type: 'year_full' },
+      { label: '이 일은 이루어질까?', sub: 'YES or NO, 지금 바로 확인해', price: '990원', type: 'yukim' },
+    ],
+    goonghap: [
+      { label: '평생 운세', sub: '내가 왜 이런 사람인지 이제 알겠어', price: '3,900원', type: 'life' },
+      { label: '이 일은 이루어질까?', sub: 'YES or NO, 지금 바로 확인해', price: '990원', type: 'yukim' },
+    ],
+    yukim: [
+      { label: '올해 운세 FULL', sub: '올해 전체 흐름이 궁금해', price: '990원', type: 'year_full' },
+      { label: '우리 궁합', sub: '우리 왜 이렇게 잘 맞아?', price: '1,990원', type: 'goonghap' },
+    ],
   }
-
-  const handleSavePDF = () => {
-    window.print()
-  }
-
-  // 월별·대운 차트 데이터 (API에서 받아야 함 — 임시 더미)
-  const monthlyChart = data.monthly_chart || []
-  const daewoonChart = data.daewoon_chart || []
 
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(160deg, #1a0a2e 0%, #16213e 50%, #0f3460 100%)',
-      padding: '24px 16px',
+      background: 'linear-gradient(160deg, #0d0020 0%, #1a0035 30%, #0a0a3e 70%, #000d2e 100%)',
+      padding: '20px 16px 80px',
       fontFamily: "'Noto Sans KR', sans-serif",
     }}>
-      <div style={{ maxWidth: '420px', margin: '0 auto' }}>
+      <div style={{ maxWidth: '480px', margin: '0 auto' }}>
 
         {/* 헤더 */}
-        <div style={{ display: 'flex', alignItems: 'center',
-          justifyContent: 'space-between', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
           <button onClick={onBack} style={{
             background: 'rgba(255,255,255,0.08)',
-            border: 'none', borderRadius: '12px',
-            padding: '8px 16px', color: 'rgba(255,255,255,0.6)',
-            cursor: 'pointer', fontSize: '13px'
-          }}>← 돌아가기</button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <img src="/huamo2.png" alt="후아모"
-              style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
-            <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px' }}>
-              후아모의 기운 리포트
-            </span>
+            border: '1px solid rgba(255,255,255,0.15)',
+            borderRadius: '10px', color: '#fff',
+            padding: '8px 14px', cursor: 'pointer', fontSize: '13px',
+          }}>← 다시 볼게</button>
+          <div style={{ flex: 1, textAlign: 'center', color: '#a78bfa',
+            fontWeight: '700', fontSize: '14px' }}>
+            {isGoonghap ? '우리 궁합' :
+              serviceType === 'year' ? '올해 내 운세' :
+              serviceType === 'year_full' ? '올해 운세 FULL' :
+              serviceType === 'life' ? '평생 운세' :
+              serviceType === 'yukim' ? '이 일은 이루어질까?' : '운세 결과'}
           </div>
         </div>
 
-        {/* MBTI 원국 */}
-        {mbti && (
-          <div style={sectionStyle}>
-            <span style={labelStyle}>타고난 기질</span>
-            <div style={{ display: 'flex', alignItems: 'center',
-              justifyContent: 'space-between', marginBottom: '16px' }}>
+        {/* MBTI 카드 */}
+        {originType && (
+          <div style={{
+            background: 'rgba(30,10,60,0.8)',
+            border: '1px solid rgba(150,80,255,0.3)',
+            borderRadius: '16px', padding: '16px', marginBottom: '16px',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
               <div>
-                <div style={{
-                  fontSize: '36px', fontWeight: '800',
-                  background: 'linear-gradient(135deg, #a78bfa, #ec4899)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  lineHeight: 1,
-                }}>
-                  {mbti.origin_type}
-                </div>
-                <div style={{ color: 'rgba(255,255,255,0.4)',
-                  fontSize: '12px', marginTop: '4px' }}>
-                  타고난 에너지 중심
-                </div>
+                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', marginBottom: '4px' }}>타고난 기질</div>
+                <div style={{ color: '#a78bfa', fontSize: '28px', fontWeight: '900' }}>{originType}</div>
               </div>
-              {mbti.current_period_type !== mbti.origin_type && (
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '24px', fontWeight: '700',
-                    color: '#fb923c' }}>
-                    {mbti.current_period_type}
-                  </div>
-                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px' }}>
-                    지금 이 시기
-                  </div>
-                </div>
-              )}
+              <div style={{ textAlign: 'center', display: 'flex', alignItems: 'center' }}>
+                <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '20px' }}>→</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', marginBottom: '4px' }}>지금 이 시기</div>
+                <div style={{ color: '#f472b6', fontSize: '28px', fontWeight: '900' }}>{currentType}</div>
+              </div>
             </div>
-
-            {/* 4축 바 (수치 없이) */}
-            {mbti.labels && Object.entries(mbti.labels).map(([axis, info]) => (
-              <div key={axis} style={{ marginBottom: '10px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between',
-                  marginBottom: '4px' }}>
-                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>
-                    {axis}
-                  </span>
-                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>
-                    {info.type} · {info.strength}
-                  </span>
-                </div>
-                <div style={{ height: '4px', background: 'rgba(255,255,255,0.08)',
-                  borderRadius: '99px', overflow: 'hidden' }}>
+            {originType !== currentType ? (
+              <div style={{
+                background: 'rgba(167,139,250,0.1)',
+                borderRadius: '10px', padding: '10px 12px',
+                marginBottom: '10px',
+                color: 'rgba(255,255,255,0.75)',
+                fontSize: '13px', lineHeight: '1.7',
+              }}>
+                타고난 기질은 <span style={{ color: '#a78bfa', fontWeight: '700' }}>{originType}</span>이지만
+                지금 이 시기에는 <span style={{ color: '#f472b6', fontWeight: '700' }}>{currentType}</span> 성향으로 살아가고 있어요.
+                삶의 흐름과 환경이 당신을 변화시키고 있는 거예요 🌙
+              </div>
+            ) : (
+              <div style={{
+                background: 'rgba(167,139,250,0.1)',
+                borderRadius: '10px', padding: '10px 12px',
+                marginBottom: '10px',
+                color: 'rgba(255,255,255,0.75)',
+                fontSize: '13px', lineHeight: '1.7',
+              }}>
+                타고난 기질 <span style={{ color: '#a78bfa', fontWeight: '700' }}>{originType}</span> 그대로
+                살아가고 있어요. 지금 당신은 가장 자연스러운 상태예요 ✨
+              </div>
+            )}
+            {mbtiData?.scores && Object.entries(mbtiData.scores).map(([axis, val]) => (
+              <div key={axis} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', width: '20px' }}>{axis}</div>
+                <div style={{ flex: 1, height: '6px', background: 'rgba(255,255,255,0.08)', borderRadius: '99px', overflow: 'hidden' }}>
                   <div style={{
                     height: '100%', borderRadius: '99px',
-                    width: `${info.score}%`,
+                    width: `${Math.abs(val) * 5 + 50}%`,
                     background: 'linear-gradient(90deg, #a78bfa, #ec4899)',
-                    transition: 'width 0.8s ease',
                   }} />
+                </div>
+                <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px', width: '60px', textAlign: 'right' }}>
+                  {mbtiData?.axis_labels?.[axis] || ''}
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* 올해 월별 파동 차트 (유료) */}
-        {serviceType === 'year' && monthlyChart.length > 0 && (
-          <div style={sectionStyle}>
-            <span style={labelStyle}>2026년 월별 기운 흐름</span>
-            <MonthlyWaveChart data={monthlyChart} originType={mbti?.origin_type} />
+        {/* 월별 차트 */}
+        {monthlyChart.length > 0 && (
+          <div style={{
+            background: 'rgba(30,10,60,0.8)',
+            border: '1px solid rgba(150,80,255,0.3)',
+            borderRadius: '16px', padding: '16px', marginBottom: '16px',
+          }}>
+            <MonthlyWaveChart data={monthlyChart} />
           </div>
-        )}
-
-        {/* 평생 대운 파동 차트 (유료) */}
-        {serviceType === 'life' && daewoonChart.length > 0 && (
-          <div style={sectionStyle}>
-            <span style={labelStyle}>평생 기운 흐름</span>
-            <DaewoonWaveChart data={daewoonChart} originType={mbti?.origin_type} />
-          </div>
-        )}
-
-        {/* 궁합 전용 화면 */}
-        {isGoonghap && personB && (
-          <>
-            {/* 두 사람 MBTI 비교 */}
-            <div style={sectionStyle}>
-              <span style={labelStyle}>두 사람의 기운</span>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <div style={{ textAlign: 'center', flex: 1 }}>
-                  <div style={{ fontSize: '32px', fontWeight: '800',
-                    background: 'linear-gradient(135deg, #38bdf8, #0ea5e9)',
-                    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                    {mbti?.origin_type}
-                  </div>
-                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', marginTop: '4px' }}>나</div>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '20px' }}>💫</div>
-                  {gScore && (
-                    <div style={{ color: '#a78bfa', fontSize: '10px', marginTop: '4px' }}>
-                      {gScore.status}
-                    </div>
-                  )}
-                </div>
-                <div style={{ textAlign: 'center', flex: 1 }}>
-                  <div style={{ fontSize: '32px', fontWeight: '800',
-                    background: 'linear-gradient(135deg, #f472b6, #ec4899)',
-                    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                    {personB.mbti?.origin_type}
-                  </div>
-                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', marginTop: '4px' }}>상대방</div>
-                </div>
-              </div>
-
-              {/* 축별 차이 바 */}
-              {gScore?.diff_detail && Object.entries(gScore.diff_detail).map(([axis, diff]) => (
-                <div key={axis} style={{ marginBottom: '10px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>{axis}축</span>
-                    <span style={{ color: diff > 30 ? '#f87171' : diff > 15 ? '#fb923c' : '#34d399',
-                      fontSize: '11px' }}>
-                      {diff > 30 ? '큰 차이' : diff > 15 ? '보통 차이' : '비슷한 편'}
-                    </span>
-                  </div>
-                  <div style={{ height: '4px', background: 'rgba(255,255,255,0.08)',
-                    borderRadius: '99px', overflow: 'hidden' }}>
-                    <div style={{
-                      height: '100%', borderRadius: '99px',
-                      width: `${Math.min(diff * 1.5, 100)}%`,
-                      background: diff > 30
-                        ? 'linear-gradient(90deg, #f87171, #ef4444)'
-                        : diff > 15
-                        ? 'linear-gradient(90deg, #fb923c, #f97316)'
-                        : 'linear-gradient(90deg, #34d399, #10b981)',
-                      transition: 'width 0.8s ease',
-                    }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* 월별 차트 비교 */}
-            {goonghapData.person_a.monthly_chart?.length > 0 && (
-              <div style={sectionStyle}>
-                <span style={labelStyle}>올해 월별 기운 비교</span>
-                <div style={{ marginBottom: '8px' }}>
-                  <span style={{ color: '#38bdf8', fontSize: '11px' }}>● 나</span>
-                  <span style={{ color: '#f472b6', fontSize: '11px', marginLeft: '12px' }}>● 상대방</span>
-                </div>
-                <MonthlyWaveChart
-                  data={goonghapData.person_a.monthly_chart}
-                  dataB={goonghapData.person_b.monthly_chart}
-                  originType={mbti?.origin_type}
-                />
-              </div>
-            )}
-
-            {/* 대운 차트 비교 */}
-            {goonghapData.person_a.daewoon_chart?.length > 0 && (
-              <div style={sectionStyle}>
-                <span style={labelStyle}>평생 대운 비교</span>
-                <div style={{ marginBottom: '8px' }}>
-                  <span style={{ color: '#38bdf8', fontSize: '11px' }}>● 나</span>
-                  <span style={{ color: '#f472b6', fontSize: '11px', marginLeft: '12px' }}>● 상대방</span>
-                </div>
-                <DaewoonWaveChart
-                  data={goonghapData.person_a.daewoon_chart}
-                  dataB={goonghapData.person_b.daewoon_chart}
-                  originType={mbti?.origin_type}
-                />
-              </div>
-            )}
-          </>
         )}
 
         {/* 풀이문 */}
-        <div style={sectionStyle}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px',
-            marginBottom: '16px' }}>
-            <img src="/huamo2.png" alt="후아모"
-              style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
-            <span style={labelStyle}>
-              후아모가 이렇게 생각해
-            </span>
+        <div style={{
+          background: 'rgba(20,8,50,0.85)',
+          border: '1px solid rgba(150,80,255,0.2)',
+          borderRadius: '16px', padding: '18px', marginBottom: '16px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+            <img src="/huamo2.png" alt="후아모" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
+            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px' }}>후아모가 이렇게 생각해</span>
           </div>
-          <div style={{
-            color: 'rgba(255,255,255,0.85)',
-            fontSize: '14px', lineHeight: '1.8',
-          }}>
-            <ReactMarkdown
-              components={{
-                p: ({children}) => (
-                  <p style={{ marginBottom: '12px' }}>{children}</p>
-                ),
-                strong: ({children}) => (
-                  <strong style={{ color: '#a78bfa', fontWeight: '700' }}>
-                    {children}
-                  </strong>
-                ),
-                em: ({children}) => (
-                  <em style={{ color: '#ec4899' }}>{children}</em>
-                ),
-                h1: ({children}) => (
-                  <h1 style={{ color: '#fff', fontSize: '16px',
-                    fontWeight: '800', marginBottom: '12px' }}>
-                    {children}
-                  </h1>
-                ),
-                h2: ({children}) => (
-                  <h2 style={{ color: '#fff', fontSize: '15px',
-                    fontWeight: '700', marginBottom: '10px',
-                    marginTop: '16px' }}>
-                    {children}
-                  </h2>
-                ),
-                li: ({children}) => (
-                  <li style={{ marginBottom: '6px', paddingLeft: '4px' }}>
-                    {children}
-                  </li>
-                ),
-                ul: ({children}) => (
-                  <ul style={{ paddingLeft: '16px', marginBottom: '12px' }}>
-                    {children}
-                  </ul>
-                ),
-              }}
-            >
-              {isGoonghap ? gReading : reading}
-            </ReactMarkdown>
-          </div>
+          {renderReading(isGoonghap ? gReading : reading)}
         </div>
 
-        {/* 사주 원국 (접기) */}
-        <details style={{ marginBottom: '16px' }}>
-          <summary style={{
-            color: 'rgba(255,255,255,0.3)', fontSize: '12px',
-            cursor: 'pointer', padding: '8px 0',
-            listStyle: 'none',
-          }}>
-            사주 원국 보기 ▾
-          </summary>
-          <div style={{ ...sectionStyle, marginTop: '8px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)',
-              gap: '8px' }}>
-              {pillars.map((p, i) => (
-                <div key={i} style={{
-                  textAlign: 'center',
-                  background: 'rgba(255,255,255,0.04)',
-                  borderRadius: '12px', padding: '12px 8px',
-                }}>
-                  <div style={{ color: 'rgba(255,255,255,0.3)',
-                    fontSize: '10px', marginBottom: '6px' }}>
-                    {pillarLabels[i]}
-                  </div>
-                  <div style={{ fontSize: '18px', fontWeight: '700',
-                    color: '#a78bfa' }}>
-                    {p.pillar.stem}
-                  </div>
-                  <div style={{ fontSize: '18px', fontWeight: '700',
-                    color: '#ec4899' }}>
-                    {p.pillar.branch}
-                  </div>
-                  <div style={{ color: 'rgba(255,255,255,0.25)',
-                    fontSize: '10px', marginTop: '4px' }}>
-                    {p.stemSipsin}
-                  </div>
+        {/* 사주 원국 */}
+        {pillars.length > 0 && (
+          <div style={{ marginBottom: '16px' }}>
+            <button
+              onClick={() => setShowRaw(!showRaw)}
+              style={{
+                background: 'none', border: 'none',
+                color: 'rgba(255,255,255,0.4)', fontSize: '12px',
+                cursor: 'pointer', padding: '4px 0',
+              }}
+            >
+              사주 원국 보기 {showRaw ? '▲' : '▼'}
+            </button>
+            {showRaw && (
+              <div style={{
+                background: 'rgba(255,255,255,0.04)',
+                borderRadius: '12px', padding: '12px', marginTop: '8px',
+              }}>
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                  {pillars.map((p, i) => (
+                    <div key={i} style={{ textAlign: 'center' }}>
+                      <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px', marginBottom: '4px' }}>
+                        {['시', '일', '월', '년'][i]}
+                      </div>
+                      <div style={{
+                        background: 'rgba(167,139,250,0.15)',
+                        border: '1px solid rgba(167,139,250,0.3)',
+                        borderRadius: '8px', padding: '8px 12px',
+                        color: '#fff', fontSize: '16px', fontWeight: '700',
+                      }}>
+                        {p.pillar?.ganzi || '?'}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        </details>
-
-        {/* 유료 서비스 유도 (무료일 때만) */}
-        {serviceType === 'year' && (
-          <div style={{
-            ...sectionStyle,
-            background: 'rgba(167,139,250,0.08)',
-            border: '1px solid rgba(167,139,250,0.2)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px',
-              marginBottom: '12px' }}>
-              <img src="/huamo2.png" alt="후아모"
-                style={{ width: '20px', height: '20px' }} />
-              <span style={{ color: '#a78bfa', fontSize: '13px', fontWeight: '600' }}>
-                더 자세히 알고 싶어?
-              </span>
-            </div>
-            {[
-              { type: 'life',     label: '평생 기운 + 대운 파동', price: '1,650원' },
-              { type: 'goonghap', label: '우리 궁합 보기',         price: '1,650원' },
-              { type: 'yukim',    label: '지금 이 질문의 답',      price: '1,650원' },
-            ].map(s => (
-              <button key={s.type}
-                style={{
-                  width: '100%', display: 'flex',
-                  justifyContent: 'space-between', alignItems: 'center',
-                  padding: '12px 14px', borderRadius: '14px',
-                  border: '1px solid rgba(167,139,250,0.15)',
-                  background: 'rgba(167,139,250,0.06)',
-                  color: '#fff', cursor: 'pointer',
-                  marginBottom: '8px', fontSize: '13px',
-                }}>
-                <span>{s.label}</span>
-                <span style={{ color: '#a78bfa', fontWeight: '700',
-                  fontSize: '12px' }}>{s.price}</span>
-              </button>
-            ))}
+              </div>
+            )}
           </div>
         )}
 
-        {/* 인쇄/저장 버튼 (유료만) */}
-        {isPaid && (
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }} className="no-print">
-            <button onClick={handlePrint} style={{
-              flex: 1, padding: '12px',
-              borderRadius: '14px', border: '1px solid rgba(167,139,250,0.3)',
-              background: 'rgba(167,139,250,0.1)',
-              color: '#a78bfa', cursor: 'pointer', fontSize: '13px',
-            }}>
-              🖨️ 인쇄하기
-            </button>
-            <button onClick={handleSavePDF} style={{
-              flex: 1, padding: '12px',
-              borderRadius: '14px', border: '1px solid rgba(236,72,153,0.3)',
-              background: 'rgba(236,72,153,0.1)',
-              color: '#ec4899', cursor: 'pointer', fontSize: '13px',
-            }}>
-              💾 PDF 저장
-            </button>
+        {/* 다음 상품 유도 */}
+        <div style={{
+          background: 'rgba(30,10,60,0.8)',
+          border: '1px solid rgba(150,80,255,0.25)',
+          borderRadius: '16px', padding: '16px', marginBottom: '16px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <img src="/huamo2.png" alt="후아모" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
+            <span style={{ color: '#c4b5fd', fontSize: '13px', fontWeight: '700' }}>더 자세히 알고 싶어?</span>
           </div>
-        )}
+          {(NEXT_PRODUCTS[serviceType] || NEXT_PRODUCTS.year).map((p, i) => (
+            <button key={i}
+              onClick={() => {
+                if (p.type === 'goonghap') { onGoonghap && onGoonghap(); return }
+                if (onServiceChange) { onServiceChange(p.type); return }
+                onBack && onBack(p.type)
+              }}
+              style={{
+                width: '100%', display: 'flex', justifyContent: 'space-between',
+                alignItems: 'center', padding: '12px 14px', marginBottom: '8px',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '12px', cursor: 'pointer', textAlign: 'left',
+              }}>
+              <div>
+                <div style={{ color: '#fff', fontSize: '13px', fontWeight: '700' }}>{p.label}</div>
+                <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', marginTop: '2px' }}>{p.sub}</div>
+              </div>
+              <div style={{
+                color: '#a78bfa', fontSize: '12px', fontWeight: '700',
+                background: 'rgba(167,139,250,0.15)',
+                padding: '4px 10px', borderRadius: '20px', whiteSpace: 'nowrap',
+              }}>{p.price}</div>
+            </button>
+          ))}
+        </div>
 
-        {/* 다시하기 */}
+        {/* 다시 보기 */}
         <button onClick={onBack} style={{
           width: '100%', padding: '14px',
-          borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)',
-          background: 'transparent', color: 'rgba(255,255,255,0.4)',
-          cursor: 'pointer', fontSize: '14px',
-        }} className="no-print">
+          borderRadius: '14px', border: '1px solid rgba(255,255,255,0.1)',
+          background: 'transparent', color: 'rgba(255,255,255,0.5)',
+          fontSize: '14px', cursor: 'pointer',
+        }}>
           다시 볼게 🤍
         </button>
-
       </div>
     </div>
   )

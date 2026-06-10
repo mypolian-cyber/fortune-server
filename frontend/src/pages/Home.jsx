@@ -7,7 +7,7 @@ fontLink.rel = 'stylesheet'
 document.head.appendChild(fontLink)
 
 const HOURS = [
-  { label: '잘 모르겠어 (3주로 볼게)', value: null },
+  { label: '태어난 시간을 몰라', value: null },
   { label: '밤 11시 ~ 새벽 1시', value: 0 },
   { label: '새벽 1시 ~ 3시', value: 2 },
   { label: '새벽 3시 ~ 5시', value: 4 },
@@ -23,14 +23,25 @@ const HOURS = [
 ]
 
 const SERVICES = [
-  { value: 'year',      label: '올해 기운',        sub: '후아모의 짧은 한마디',    price: '무료',    free: true },
-  { value: 'year_full', label: '올해 기운 풀버전',  sub: '월별 파동 + 상세 풀이',  price: '990원',   free: false, hot: true },
-  { value: 'life',      label: '평생 기운',        sub: '타고난 기질과 흐름',      price: '1,650원', free: false },
-  { value: 'goonghap',  label: '우리 궁합',        sub: '두 사람의 기운',          price: '1,650원', free: false },
-  { value: 'yukim',     label: '이 일은 이루어질까?', sub: '지금 이 순간의 답',      price: '1,650원', free: false },
+  { value: 'year',      label: '올해 내 운세',      sub: '사주로 보는 2026년 흐름',           price: '무료',    free: true },
+  { value: 'year_full', label: '올해 운세 FULL',    sub: '월별로 언제 치고 언제 쉴지',        price: '990원', free: false, hot: true },
+  { value: 'life',      label: '평생 운세',         sub: '내가 왜 이런 사람인지 이제 알겠어', price: '3,900원', free: false },
+  { value: 'goonghap',  label: '우리 궁합',         sub: '우리 왜 이렇게 잘 맞아? or 왜 이렇게 싸워?', price: '1,990원', free: false },
+  { value: 'yukim',     label: '이 일은 이루어질까?', sub: 'YES or NO, 지금 바로 확인해',     price: '990원', free: false },
+]
+
+const LOADING_MESSAGES = [
+  '후아모가 별자리를 읽는 중... ✨',
+  '기운을 모으고 있어... 🌙',
+  '우주에서 답을 찾는 중... 🔮',
+  '당신의 흐름을 파악하는 중... 💫',
+  '사주를 분석하는 중... 🌟',
+  '후아모가 열심히 읽고 있어... 🤍',
+  '거의 다 됐어, 조금만 기다려... ⭐',
 ]
 
 export default function Home({ onResult, onGoonghap }) {
+  const [loadingMsg, setLoadingMsg] = useState(0)
   const [form, setForm] = useState({
     year: '', month: '', day: '',
     hour: null, gender: 'M',
@@ -65,6 +76,10 @@ export default function Home({ onResult, onGoonghap }) {
 
     setError('')
     setLoading(true)
+    setLoadingMsg(0)
+    const msgInterval = setInterval(() => {
+      setLoadingMsg(prev => (prev + 1) % LOADING_MESSAGES.length)
+    }, 1800)
     try {
       const result = await calculateSaju({
         year: parseInt(form.year),
@@ -74,13 +89,16 @@ export default function Home({ onResult, onGoonghap }) {
         minute: 0,
         gender: form.gender,
         service_type: form.service_type,
-        target_year: new Date().getFullYear()
+        target_year: new Date().getFullYear(),
+        calendar: form.calendar,
+        is_leap: form.is_leap || false,
       })
       onResult({ ...result, form })
     } catch (e) {
       setError('앗, 뭔가 잘못됐어. 다시 시도해봐 🤍')
     } finally {
       setLoading(false)
+      clearInterval(msgInterval)
     }
   }
 
@@ -98,6 +116,92 @@ export default function Home({ onResult, onGoonghap }) {
       position: 'relative',
       overflow: 'hidden',
     }}>
+      {/* 로딩 오버레이 */}
+      {loading && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(5,0,20,0.92)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          zIndex: 999,
+        }}>
+          {/* 후아모 이미지 펄스 */}
+          <div style={{
+            animation: 'pulse 1.5s ease-in-out infinite',
+            marginBottom: '24px',
+          }}>
+            <img src="/huamo2.png" alt="후아모"
+              style={{
+                width: '100px', height: '100px',
+                objectFit: 'contain',
+                filter: 'drop-shadow(0 0 30px rgba(167,139,250,0.9))',
+              }}
+            />
+          </div>
+
+          {/* 별 반짝임 */}
+          <div style={{ fontSize: '24px', marginBottom: '16px', letterSpacing: '8px' }}>
+            {['✦','✧','✦','✧','✦'].map((s,i) => (
+              <span key={i} style={{
+                display: 'inline-block',
+                animation: `twinkle 1.2s ease-in-out ${i*0.2}s infinite`,
+                opacity: 0.8,
+              }}>{s}</span>
+            ))}
+          </div>
+
+          {/* 로딩 메시지 */}
+          <div style={{
+            color: '#e0aaff',
+            fontSize: '16px',
+            fontWeight: '700',
+            textAlign: 'center',
+            animation: 'fadeInOut 1.8s ease-in-out infinite',
+            textShadow: '0 0 20px rgba(167,139,250,0.8)',
+            padding: '0 32px',
+          }}>
+            {LOADING_MESSAGES[loadingMsg]}
+          </div>
+
+          {/* 프로그레스 바 */}
+          <div style={{
+            width: '200px', height: '3px',
+            background: 'rgba(255,255,255,0.1)',
+            borderRadius: '99px',
+            marginTop: '24px',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              height: '100%',
+              background: 'linear-gradient(90deg, #a78bfa, #ec4899)',
+              borderRadius: '99px',
+              animation: 'progress 3s ease-in-out infinite',
+            }} />
+          </div>
+
+          <style>{`
+            @keyframes pulse {
+              0%, 100% { transform: scale(1); filter: drop-shadow(0 0 20px rgba(167,139,250,0.7)); }
+              50% { transform: scale(1.1); filter: drop-shadow(0 0 40px rgba(167,139,250,1)); }
+            }
+            @keyframes twinkle {
+              0%, 100% { opacity: 0.3; transform: scale(1); }
+              50% { opacity: 1; transform: scale(1.3); }
+            }
+            @keyframes fadeInOut {
+              0%, 100% { opacity: 0.7; }
+              50% { opacity: 1; }
+            }
+            @keyframes progress {
+              0% { width: 0%; }
+              50% { width: 70%; }
+              100% { width: 100%; }
+            }
+          `}</style>
+        </div>
+      )}
+
       {/* 네온 배경 글로우 */}
       <div style={{
         position: 'fixed', top: '-30%', left: '-30%',
@@ -175,13 +279,13 @@ export default function Home({ onResult, onGoonghap }) {
           />
           <div style={{
             fontFamily: "'Gaegu', cursive",
-            fontSize: '18px',
-            fontWeight: '700',
+            fontSize: '32px',
+            fontWeight: '900',
             background: 'linear-gradient(135deg, #ffe066, #ffaa00, #ff8c00)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
-            filter: 'drop-shadow(0 0 10px rgba(255,180,0,0.7))',
+            filter: 'drop-shadow(0 0 12px rgba(255,180,0,0.8))',
             lineHeight: 1.3,
             textAlign: 'left',
           }}>
@@ -200,7 +304,7 @@ export default function Home({ onResult, onGoonghap }) {
           filter: 'drop-shadow(0 2px 8px rgba(200,100,255,0.9)) drop-shadow(0 0 20px rgba(255,100,240,0.6))',
           textShadow: 'none',
         }}>
-          MBTI로 운세를 볼까?{' '}
+          사주 × MBTI = 나만의 운세{' '}
           <span style={{
             background: 'linear-gradient(135deg, #ff0080 0%, #ff4d00 20%, #ffcc00 40%, #00ff88 60%, #0088ff 80%, #cc00ff 100%)',
             WebkitBackgroundClip: 'text',
@@ -216,7 +320,7 @@ export default function Home({ onResult, onGoonghap }) {
           fontWeight: '400',
           letterSpacing: '0.2px',
         }}>
-          이름도 필요없어. 생년월일시만 알려줘
+          16가지 MBTI 중 진짜 내 유형, 사주로 찾아줄게
         </p>
       </div>
 
@@ -463,7 +567,7 @@ export default function Home({ onResult, onGoonghap }) {
             transition: 'all 0.15s',
           }}
         >
-          {loading ? '후아모가 읽는 중... ♥' : (
+          {loading ? LOADING_MESSAGES[loadingMsg] : (
             <>내 기운 읽어줘{' '}
               <span style={{
                 background: 'linear-gradient(135deg, #ff6b9d, #ff4757)',
