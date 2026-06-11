@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { MonthlyWaveChart, DaewoonWaveChart } from '../components/WaveChart'
+import html2canvas from 'html2canvas'
 
 const SECTION_COLORS = {
   '📊': { border: '#6366f1', color: '#a5b4fc', bg: 'rgba(99,102,241,0.12)' },
@@ -185,7 +186,7 @@ export default function Result({ data, onBack, onGoonghap, onServiceChange, onUp
       padding: '20px 16px 80px',
       fontFamily: "'Noto Sans KR', sans-serif",
     }}>
-      <div style={{ maxWidth: '480px', margin: '0 auto' }}>
+      <div id="result-content" style={{ maxWidth: '480px', margin: '0 auto' }}>
 
         {/* 헤더 */}
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
@@ -436,15 +437,34 @@ export default function Result({ data, onBack, onGoonghap, onServiceChange, onUp
           }}>
             🖨️ 인쇄하기
           </button>
-          <button onClick={(e) => {
+          <button onClick={async (e) => {
             e.stopPropagation();
-            const el = document.querySelector("#root")
-            const text = el ? el.innerText : document.body.innerText
-            const blob = new Blob([text], { type: "text/plain;charset=utf-8" })
-            const a = document.createElement("a")
-            a.href = URL.createObjectURL(blob)
-            a.download = "후아모_운세결과.txt"
-            a.click()
+            try {
+              const el = document.getElementById('result-content')
+              const canvas = await html2canvas(el, {
+                backgroundColor: '#1a0533',
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                foreignObjectRendering: false,
+                logging: false,
+                ignoreElements: (el) => el.tagName === 'IFRAME',
+              })
+              const a = document.createElement('a')
+              a.href = canvas.toDataURL('image/png')
+              a.download = '후아모_운세결과.png'
+              a.click()
+            } catch(err) {
+              console.error('캡처 오류:', err)
+              // 폴백: 텍스트 저장
+              const el = document.getElementById('result-content')
+              const text = el ? el.innerText : ''
+              const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
+              const a = document.createElement('a')
+              a.href = URL.createObjectURL(blob)
+              a.download = '후아모_운세결과.txt'
+              a.click()
+            }
           }} style={{
             flex: 1, padding: '12px',
             borderRadius: '12px', border: '1px solid rgba(167,139,250,0.3)',
