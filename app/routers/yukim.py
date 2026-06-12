@@ -152,6 +152,12 @@ def build_yukim_prompt(
 [말투 지침]
 {mbti_tone if mbti_tone else '공감하고 따뜻하게, 직관적으로 서술하세요.'}
 
+[해석 원칙 — 반드시 따를 것]
+- 점을 본 시점의 에너지(현재→전개→결론)는 출발점일 뿐입니다. 진짜 핵심은 "이 에너지가 사용자의 구체적 질문 상황에서 무엇을 의미하는가"입니다.
+- 현재 에너지가 중전으로, 중전이 결론으로 이어지는 흐름을 하나의 이야기로 연결해서 해석하세요. 세 에너지를 따로따로 설명하지 말고, 인과관계로 엮으세요.
+- 주변 환경 에너지(4과)는 사용자를 둘러싼 사람·상황·외부 변수로 해석해서, 본인 에너지와 어떻게 상호작용하는지 짚어주세요.
+- "이루어질까?"라는 질문의 본질에 답하세요. 결론 섹션에서 애매하게 흐리지 말고, 전체 흐름을 종합한 뒤 가능성이 높은 방향을 분명히 제시하세요(예: "지금 흐름대로면 가능성이 높습니다" / "지금은 어렵지만 시기를 바꾸면 달라집니다" 등 — 구체적 근거와 함께).
+
 [출력 지침]
 - 전체 1,500자 이상 작성하세요
 - 각 섹션 최소 150자 이상
@@ -195,7 +201,8 @@ async def generate_yukim_reading(
     gender: str,
     mbti_type: str = None
 ) -> str:
-    api_key = os.getenv("GOOGLE_API_KEY", "")
+    from openai import AsyncOpenAI
+    api_key = os.getenv("OPENAI_API_KEY", "")
     if not api_key:
         return _dummy_reading(yukim_result, question_type, question_items)
 
@@ -204,23 +211,17 @@ async def generate_yukim_reading(
         question_text, gender, mbti_type
     )
 
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}",
-            headers={"content-type": "application/json"},
-            json={
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {
-                    "maxOutputTokens": 2000,
-                    "temperature": 0.9,
-                }
-            },
-            timeout=40.0
-        )
-        result = response.json()
-        if response.status_code != 200:
-            raise Exception(f"Gemini API 오류: {result.get('error', {}).get('message', '')}")
-        return result["candidates"][0]["content"]["parts"][0]["text"]
+    client = AsyncOpenAI(api_key=api_key)
+    response = await client.chat.completions.create(
+        model="gpt-4o",
+        max_tokens=2000,
+        temperature=0.9,
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user",   "content": prompt},
+        ],
+    )
+    return response.choices[0].message.content
 
 
 def _dummy_reading(yukim_result: dict, question_type: str, question_items: list) -> str:

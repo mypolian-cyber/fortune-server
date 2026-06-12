@@ -3,6 +3,7 @@ import Home from './pages/Home'
 import Goonghap from './pages/Goonghap'
 import Yukim from './pages/Yukim'
 import Result from './pages/Result'
+import Privacy from './pages/Privacy'
 import PaymentModal from './components/Payment'
 import ContactModal from './components/Contact'
 import { calculateSaju, verifyPayment } from './services/api'
@@ -12,6 +13,7 @@ export default function App() {
   const [goonghapData, setGoonghapData] = useState(null)
   const [goonghapPreFill, setGoonghapPreFill] = useState(null)
   const [yukimPreFill, setYukimPreFill] = useState(null)
+  const [privacyTab, setPrivacyTab] = useState('privacy')
   const [sajuData, setSajuData] = useState(null)
   const [showPayment, setShowPayment] = useState(false)
   const [pendingService, setPendingService] = useState(null)
@@ -157,7 +159,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen">
-      {page === 'home' && <Home onResult={goResult} onGoonghap={goGoonghap} onYukim={goYukim} />}
+      {page === 'home' && <Home onResult={goResult} onGoonghap={goGoonghap} onYukim={goYukim} onGoPrivacy={(tab) => { setPrivacyTab(tab || 'privacy'); setPage('privacy') }} />}
+      {page === 'privacy' && <Privacy onBack={() => setPage('home')} initialTab={privacyTab} />}
       {page === 'yukim' && (
         <Yukim
           onResult={(data) => {

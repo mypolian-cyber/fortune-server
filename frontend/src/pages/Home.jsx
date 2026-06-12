@@ -40,7 +40,7 @@ const LOADING_MESSAGES = [
   '거의 다 됐어, 조금만 기다려... ⭐',
 ]
 
-export default function Home({ onResult, onGoonghap, onYukim }) {
+export default function Home({ onResult, onGoonghap, onYukim, onGoPrivacy }) {
   const [loadingMsg, setLoadingMsg] = useState(0)
   const [form, setForm] = useState({
     year: '', month: '', day: '',
@@ -603,16 +603,40 @@ export default function Home({ onResult, onGoonghap, onYukim }) {
         }}>
           생년월일·성별은 서비스 개선 및 맞춤 정보 제공 목적으로 수집됩니다
         </p>
-        <button
-          onClick={() => window.open('/privacy', '_blank')}
-          style={{
-            background: 'none', border: 'none',
-            color: 'rgba(167,139,250,0.5)', fontSize: '10px',
-            cursor: 'pointer', textDecoration: 'underline',
-            padding: 0,
-          }}>
-          개인정보처리방침
-        </button>
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => onGoPrivacy && onGoPrivacy('privacy')}
+            style={{
+              background: 'none', border: 'none',
+              color: 'rgba(167,139,250,0.5)', fontSize: '10px',
+              cursor: 'pointer', textDecoration: 'underline',
+              padding: 0,
+            }}>
+            개인정보처리방침
+          </button>
+          <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '10px' }}>·</span>
+          <button
+            onClick={() => onGoPrivacy && onGoPrivacy('terms')}
+            style={{
+              background: 'none', border: 'none',
+              color: 'rgba(167,139,250,0.5)', fontSize: '10px',
+              cursor: 'pointer', textDecoration: 'underline',
+              padding: 0,
+            }}>
+            이용약관
+          </button>
+          <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '10px' }}>·</span>
+          <button
+            onClick={() => onGoPrivacy && onGoPrivacy('biz')}
+            style={{
+              background: 'none', border: 'none',
+              color: 'rgba(167,139,250,0.5)', fontSize: '10px',
+              cursor: 'pointer', textDecoration: 'underline',
+              padding: 0,
+            }}>
+            사업자정보
+          </button>
+        </div>
       </div>
     </div>
   )
