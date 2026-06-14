@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Home from './pages/Home'
 import Goonghap from './pages/Goonghap'
 import Yukim from './pages/Yukim'
@@ -6,7 +6,7 @@ import Result from './pages/Result'
 import Privacy from './pages/Privacy'
 import PaymentModal from './components/Payment'
 import ContactModal from './components/Contact'
-import { calculateSaju, verifyPayment } from './services/api'
+import { calculateSaju, calculateGoonghap } from './services/api'
 
 export default function App() {
   const [page, setPage] = useState('home')
@@ -18,67 +18,112 @@ export default function App() {
   const [showPayment, setShowPayment] = useState(false)
   const [pendingService, setPendingService] = useState(null)
   const [showContact, setShowContact] = useState(false)
+  const [loadingResult, setLoadingResult] = useState(false)
 
-  // 결제 성공 콜백 처리
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const paymentKey  = params.get('paymentKey')
-    const orderId     = params.get('orderId')
-    const amount      = params.get('amount')
-    const cacheKey    = params.get('cache_key')
-    const serviceType = params.get('service_type')
+  const TEST_MODE = import.meta.env.VITE_TEST_MODE === 'true'
 
-    if (paymentKey && orderId && amount) {
-      // 결제 승인 처리
-      fetch('/api/payment/confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          payment_key: paymentKey,
-          order_id:    orderId,
-          amount:      parseInt(amount)
-        })
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          // 결제 완료 후 유료 결과 불러오기
-          window.history.replaceState({}, '', '/')
-          if (cacheKey && serviceType) {
-            loadPaidResult(cacheKey, serviceType)
-          }
-        }
-      })
-      .catch(console.error)
-    }
-  }, [])
-
-  const loadPaidResult = async (cacheKey, serviceType) => {
+  const loadPaidResult = async (cacheKey, serviceType, overrideSajuData = null) => {
+    if (loadingResult) return
+    const source = overrideSajuData || sajuData
     try {
-      // 기존 sajuData가 있으면 service_type만 바꿔서 재요청
-      if (sajuData?.form) {
+      if (source?.form) {
+        setLoadingResult(true)
         const result = await calculateSaju({
-          ...sajuData.form,
-          year:         parseInt(sajuData.form.year),
-          month:        parseInt(sajuData.form.month),
-          day:          parseInt(sajuData.form.day),
+          ...source.form,
+          year:         parseInt(source.form.year),
+          month:        parseInt(source.form.month),
+          day:          parseInt(source.form.day),
           service_type: serviceType,
           target_year:  new Date().getFullYear()
         })
-        setSajuData({ ...result, form: sajuData.form })
+        setSajuData({ ...result, form: { ...source.form, service_type: serviceType } })
         setPage('result')
       }
     } catch (e) {
       console.error(e)
+      alert('운세를 불러오는데 시간이 오래 걸리고 있어요. 잠시 후 다시 시도해주세요 🤍')
+    } finally {
+      setLoadingResult(false)
     }
   }
 
-  const TEST_MODE = import.meta.env.VITE_TEST_MODE === 'true'
+  const loadPaidYukimResult = async () => {
+    if (loadingResult) return
+    try {
+      setLoadingResult(true)
+      const { calculateYukim } = await import('./services/api')
+      const yukimData = sajuData
+      const result = await calculateYukim({
+        year: parseInt(yukimData?.form?.year || new Date().getFullYear()),
+        month: parseInt(yukimData?.form?.month || new Date().getMonth() + 1),
+        day: parseInt(yukimData?.form?.day || new Date().getDate()),
+        hour: yukimData?.form?.hour ?? null,
+        minute: 0,
+        gender: yukimData?.form?.gender || 'M',
+        calendar: yukimData?.form?.calendar || 'solar',
+        question_type: yukimData?.question_type,
+        question_items: yukimData?.question_items,
+        question_text: yukimData?.question_text,
+      })
+      setSajuData({ ...result, type: 'yukim', form: yukimData?.form,
+        question_type: yukimData?.question_type,
+        question_items: yukimData?.question_items,
+        question_text: yukimData?.question_text,
+      })
+      setPage('result')
+    } catch (e) {
+      console.error(e)
+      alert('육임을 불러오는데 시간이 오래 걸리고 있어요. 잠시 후 다시 시도해주세요 🤍')
+    } finally {
+      setLoadingResult(false)
+    }
+  }
+
+  const loadPaidGoonghapResult = async (goonghapForm) => {
+    if (loadingResult) return
+    try {
+      setLoadingResult(true)
+      const result = await calculateGoonghap({
+        person_a: {
+          year: parseInt(goonghapForm.formA.year),
+          month: parseInt(goonghapForm.formA.month),
+          day: parseInt(goonghapForm.formA.day),
+          hour: goonghapForm.formA.hour,
+          minute: 0,
+          gender: goonghapForm.formA.gender,
+          calendar: goonghapForm.formA.calendar || 'solar',
+        },
+        person_b: {
+          year: parseInt(goonghapForm.formB.year),
+          month: parseInt(goonghapForm.formB.month),
+          day: parseInt(goonghapForm.formB.day),
+          hour: goonghapForm.formB.hour,
+          minute: 0,
+          gender: goonghapForm.formB.gender,
+          calendar: goonghapForm.formB.calendar || 'solar',
+        },
+        target_year: new Date().getFullYear()
+      })
+      const data = {
+        type: 'goonghap',
+        ...result,
+        formA: goonghapForm.formA,
+        formB: goonghapForm.formB,
+      }
+      setGoonghapData(data)
+      setSajuData({ ...data, form: data.formA })
+      setPage('result')
+    } catch (e) {
+      console.error(e)
+      alert('궁합을 불러오는데 시간이 오래 걸리고 있어요. 잠시 후 다시 시도해주세요 🤍')
+    } finally {
+      setLoadingResult(false)
+    }
+  }
 
   const goResult = (data) => {
     const freeServices = ['year']
     const serviceType  = data.form?.service_type
-
     if (freeServices.includes(serviceType) || TEST_MODE || isPaidToday(serviceType, data.form)) {
       setSajuData(data)
       setPage('result')
@@ -111,8 +156,17 @@ export default function App() {
 
   const handlePaymentSuccess = () => {
     setShowPayment(false)
-    setPage('result')
-    // 오늘 결제한 서비스 localStorage에 저장
+    if (pendingService === 'goonghap') {
+      const goonghapForm = {
+        formA: sajuData?.formA || sajuData?.form,
+        formB: sajuData?.formB,
+      }
+      loadPaidGoonghapResult(goonghapForm)
+    } else if (pendingService === 'yukim') {
+      loadPaidYukimResult()
+    } else {
+      loadPaidResult(null, pendingService)
+    }
     try {
       const today = new Date().toISOString().split('T')[0]
       const key = `paid_${today}`
@@ -126,7 +180,6 @@ export default function App() {
     } catch(e) {}
   }
 
-  // 오늘 결제 여부 확인
   const isPaidToday = (serviceType, form) => {
     try {
       const today = new Date().toISOString().split('T')[0]
@@ -145,7 +198,6 @@ export default function App() {
     setYukimPreFill(null)
   }
 
-  // 결제 후 유료 서비스 업그레이드 (결과 화면에서 유료 버튼 클릭시)
   const handleUpgrade = (serviceType) => {
     setPendingService(serviceType)
     setShowPayment(true)
@@ -190,9 +242,10 @@ export default function App() {
           onBack={goHome}
           onGoonghap={goGoonghap}
           onUpgrade={handleUpgrade}
+          loadingNext={loadingResult}
           onServiceChange={(serviceType) => {
             if (serviceType === 'goonghap') {
-              goGoonghap()
+              goGoonghap(sajuData?.form || sajuData?.formA)
             } else if (serviceType === 'yukim') {
               goYukim(sajuData?.form || sajuData?.formA)
             } else if (TEST_MODE) {
@@ -203,7 +256,6 @@ export default function App() {
           }}
         />
       )}
-      {/* 문의하기 버튼 */}
       {(page === 'home') && (
         <button
           onClick={() => setShowContact(true)}
@@ -224,12 +276,9 @@ export default function App() {
           📩 문의하기
         </button>
       )}
-
-      {/* 문의 모달 */}
       {showContact && (
         <ContactModal onClose={() => setShowContact(false)} />
       )}
-
       {showPayment && pendingService && (
         <PaymentModal
           serviceType={pendingService}
@@ -237,7 +286,8 @@ export default function App() {
           onSuccess={handlePaymentSuccess}
           onClose={() => {
             setShowPayment(false)
-            if (sajuData) setPage('result')
+            setSajuData(null)
+            setPage('home')
           }}
         />
       )}

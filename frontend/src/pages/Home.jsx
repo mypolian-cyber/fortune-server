@@ -24,10 +24,10 @@ const HOURS = [
 
 const SERVICES = [
   { value: 'year',      label: '올해 내 운세',      sub: '사주로 보는 2026년 흐름',           price: '무료',    free: true },
-  { value: 'year_full', label: '올해 운세 FULL',    sub: '월별로 언제 치고 언제 쉴지',        price: '990원', free: false, hot: true },
-  { value: 'life',      label: '평생 운세',         sub: '내가 왜 이런 사람인지 이제 알겠어', price: '3,900원', free: false },
-  { value: 'goonghap',  label: '우리 궁합',         sub: '우리 왜 이렇게 잘 맞아? or 왜 이렇게 싸워?', price: '1,990원', free: false },
-  { value: 'yukim',     label: '이 일은 이루어질까?', sub: 'YES or NO, 지금 바로 확인해',     price: '990원', free: false },
+  { value: 'year_full', label: '올해 운세 FULL',    sub: '월별로 언제 치고 언제 쉴지',        price: '1,100원', free: false, hot: true },
+  { value: 'life',      label: '평생 운세',         sub: '내가 왜 이런 사람인지 이제 알겠어', price: '4,200원', free: false },
+  { value: 'goonghap',  label: '우리 궁합',         sub: '우리 왜 이렇게 잘 맞아? or 왜 이렇게 싸워?', price: '2,200원', free: false },
+  { value: 'yukim',     label: '이 일은 이루어질까?', sub: 'YES or NO, 지금 바로 확인해',     price: '1,100원', free: false },
 ]
 
 const LOADING_MESSAGES = [
@@ -82,6 +82,11 @@ export default function Home({ onResult, onGoonghap, onYukim, onGoPrivacy }) {
       return
     }
 
+    const selectedService = SERVICES.find(s => s.value === form.service_type)
+    if (selectedService && selectedService.free === false) {
+      onResult({ form })
+      return
+    }
     setError('')
     setLoading(true)
     setLoadingMsg(0)

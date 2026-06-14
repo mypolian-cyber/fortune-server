@@ -1,5 +1,20 @@
 import { useState, useEffect } from 'react'
 import { getPrice, preparePayment } from '../services/api'
+import axios from 'axios'
+
+const STORE_ID = 'store-659090d9-bacb-4fbd-9de9-b4fc74e8fcaa'
+const CHANNEL_KEY_CARD = import.meta.env.VITE_PORTONE_CHANNEL_KEY_CARD || ''
+
+function loadPortOne() {
+  return new Promise((resolve, reject) => {
+    if (window.PortOne) return resolve(window.PortOne)
+    const script = document.createElement('script')
+    script.src = 'https://cdn.portone.io/v2/browser-sdk.js'
+    script.onload = () => resolve(window.PortOne)
+    script.onerror = reject
+    document.head.appendChild(script)
+  })
+}
 
 export default function PaymentModal({ serviceType, cacheKey, onSuccess, onClose }) {
   const [priceInfo, setPriceInfo] = useState(null)
@@ -18,24 +33,40 @@ export default function PaymentModal({ serviceType, cacheKey, onSuccess, onClose
     try {
       const order = await preparePayment({ service_type: serviceType, cache_key: cacheKey })
 
-      // 토스페이먼츠 결제창 호출
-      const { loadTossPayments } = await import('@tosspayments/tosspayments-sdk')
-      const toss = await loadTossPayments(order.client_key)
-
-      await toss.requestPayment({
-        method: 'CARD',
-        amount: { currency: 'KRW', value: order.amount },
-        orderId: order.order_id,
+      const PortOne = await loadPortOne()
+      const response = await PortOne.requestPayment({
+        storeId: STORE_ID,
+        channelKey: CHANNEL_KEY_CARD,
+        paymentId: order.merchant_uid,
         orderName: order.order_name,
-        successUrl: `${window.location.origin}/payment/success?cache_key=${cacheKey}&service_type=${serviceType}`,
-        failUrl: `${window.location.origin}/payment/fail`,
-        customerEmail: undefined,
-        customerName: undefined,
+        totalAmount: order.amount,
+        currency: 'CURRENCY_KRW',
+        customer: { fullName: '고객', phoneNumber: '010-0000-0000', email: 'customer@huamo.com' },
+        payMethod: 'CARD',
       })
-    } catch (e) {
-      if (e.code !== 'USER_CANCEL') {
-        setError('결제 중 오류가 발생했어. 다시 시도해줘')
+
+      if (!response || response.code) {
+        if (response?.code !== 'USER_CANCEL') {
+          setError(response?.message || '결제 중 오류가 발생했어. 다시 시도해줘')
+        }
+        setLoading(false)
+        return
       }
+
+      const { data: confirmed } = await axios.post('/api/payment/confirm', {
+        payment_id: response.paymentId,
+        service_type: serviceType,
+        cache_key: cacheKey,
+      })
+
+      if (confirmed.success) {
+        onSuccess()
+      } else {
+        setError('결제 확인 실패. 다시 시도해줘')
+        setLoading(false)
+      }
+    } catch (e) {
+      setError('결제 중 오류가 발생했어. 다시 시도해줘')
       setLoading(false)
     }
   }
@@ -64,14 +95,12 @@ export default function PaymentModal({ serviceType, cacheKey, onSuccess, onClose
         padding: '24px 20px 40px',
         border: '1px solid rgba(255,255,255,0.1)',
       }}>
-        {/* 핸들 */}
         <div style={{
           width: '40px', height: '4px',
           background: 'rgba(255,255,255,0.2)',
           borderRadius: '99px', margin: '0 auto 20px',
         }} />
 
-        {/* 후아모 */}
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
           <img src="/huamo2.png" alt="후아모"
             style={{ width: '60px', height: '60px', objectFit: 'contain' }} />
@@ -92,38 +121,17 @@ export default function PaymentModal({ serviceType, cacheKey, onSuccess, onClose
               </div>
             </div>
 
-            {/* 가격 */}
             <div style={{
               background: 'rgba(255,255,255,0.05)',
               borderRadius: '16px', padding: '16px',
               marginBottom: '20px',
               border: '1px solid rgba(255,255,255,0.08)',
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between',
-                marginBottom: '8px' }}>
-                <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px' }}>
-                  기본가
-                </span>
-                <span style={{ color: '#fff', fontSize: '13px' }}>
-                  {priceInfo.base_price.toLocaleString()}원
-                </span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between',
-                marginBottom: '12px' }}>
-                <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px' }}>
-                  부가세 (10%)
-                </span>
-                <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px' }}>
-                  {priceInfo.vat.toLocaleString()}원
-                </span>
-              </div>
               <div style={{
-                borderTop: '1px solid rgba(255,255,255,0.08)',
-                paddingTop: '12px',
                 display: 'flex', justifyContent: 'space-between',
               }}>
                 <span style={{ color: '#fff', fontSize: '15px', fontWeight: '700' }}>
-                  합계
+                  결제 금액
                 </span>
                 <span style={{
                   fontSize: '20px', fontWeight: '800',
@@ -131,7 +139,7 @@ export default function PaymentModal({ serviceType, cacheKey, onSuccess, onClose
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                 }}>
-                  {priceInfo.total.toLocaleString()}원
+                  {priceInfo.amount.toLocaleString()}원
                 </span>
               </div>
             </div>
@@ -153,7 +161,7 @@ export default function PaymentModal({ serviceType, cacheKey, onSuccess, onClose
               boxShadow: loading ? 'none' : '0 4px 20px rgba(167,139,250,0.4)',
               marginBottom: '12px',
             }}>
-              {loading ? '결제 중...' : `${priceInfo.total.toLocaleString()}원 결제하기`}
+              {loading ? '결제 중...' : `${priceInfo.amount.toLocaleString()}원 결제하기`}
             </button>
 
             <button onClick={onClose} style={{

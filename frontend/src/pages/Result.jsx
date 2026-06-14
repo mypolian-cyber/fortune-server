@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { MonthlyWaveChart, DaewoonWaveChart } from '../components/WaveChart'
 import html2canvas from 'html2canvas'
+import jsPDF from 'jspdf'
 
 const SECTION_COLORS = {
   '📊': { border: '#6366f1', color: '#a5b4fc', bg: 'rgba(99,102,241,0.12)' },
@@ -105,8 +106,24 @@ function renderReading(text) {
     currentSection = null
   }
 
+  // 이모지 없이도 "제목처럼 보이는 줄"을 섹션 헤더로 인식하기 위한 휴리스틱
+  const FALLBACK_EMOJI = '🌟'
+  const isLikelyHeading = (line, nextLine) => {
+    const trimmed = line.trim()
+    if (!trimmed) return false
+    if (trimmed.length > 22) return false
+    // 마침표/물음표/느낌표로 끝나면 본문 문장일 확률이 높음
+    if (/[.!?。！？]$/.test(trimmed)) return false
+    // 콜론으로 끝나는 라벨형 줄(예: "타고난 기질:")은 헤더로 보지 않음
+    if (/[:：]$/.test(trimmed)) return false
+    // 다음 줄이 존재하고 비어있지 않아야 본문이 이어지는 헤더로 간주
+    if (nextLine === undefined) return false
+    if (!nextLine.trim()) return false
+    return true
+  }
+
   lines.forEach((line, i) => {
-    // 섹션 헤더 감지
+    // 섹션 헤더 감지 (이모지로 시작)
     const emoji = Object.keys(SECTION_COLORS).find(e => line.startsWith(e))
 
     if (emoji) {
@@ -125,6 +142,15 @@ function renderReading(text) {
           textShadow: '0 0 12px rgba(167,139,250,0.6)',
         }}>{line}</div>
       )
+    } else if (isLikelyHeading(line, lines[i + 1])) {
+      // 이모지 없는 제목성 줄 → 새 섹션 시작 (기본 이모지 색상 사용)
+      flushSection(i)
+      currentSection = { emoji: FALLBACK_EMOJI, title: line.trim() }
+      currentColor = SECTION_COLORS[FALLBACK_EMOJI]?.color || '#a78bfa'
+    } else if (!currentSection) {
+      // 아직 섹션이 시작되기 전의 일반 텍스트는 바로 본문으로 렌더링
+      const rendered = renderTextLine(line, `pre-${i}`)
+      if (rendered) result.push(rendered)
     } else {
       sectionContent.push(line)
     }
@@ -134,7 +160,7 @@ function renderReading(text) {
   return result
 }
 
-export default function Result({ data, onBack, onGoonghap, onServiceChange, onUpgrade }) {
+export default function Result({ data, onBack, onGoonghap, onServiceChange, onUpgrade, loadingNext }) {
   const [showRaw, setShowRaw] = useState(false)
   const isGoonghap = data?.type === 'goonghap'
   const reading = data?.reading || ''
@@ -144,7 +170,7 @@ export default function Result({ data, onBack, onGoonghap, onServiceChange, onUp
   const pillars = personA?.saju?.pillars || data?.pillars || []
   const daewoon = personA?.saju?.daewoon || data?.daewoon || []
   const monthlyChart = personA?.monthly_chart || data?.monthly_chart || []
-  const daewoonChartA = personA?.daewoon_chart || []
+  const daewoonChartA = personA?.daewoon_chart || data?.daewoon_chart || data?.mbti?.daewoon_chart || []
   const daewoonChartB = personB?.daewoon_chart || []
   const mbtiData = personA?.mbti || data?.mbti || data?.mbti_data || {}
   const mbtiDataB = personB?.mbti || {}
@@ -319,7 +345,19 @@ export default function Result({ data, onBack, onGoonghap, onServiceChange, onUp
             <DaewoonWaveChart data={daewoonChartA} dataB={daewoonChartB} originType="goonghap" />
           </div>
         )}
-        {monthlyChart.length > 0 && !isGoonghap && !isYukim && (
+        {serviceType === 'life' && daewoonChartA.length > 0 && !isGoonghap && (
+          <div style={{
+            background: 'rgba(30,10,60,0.8)',
+            border: '1px solid rgba(150,80,255,0.3)',
+            borderRadius: '16px', padding: '16px', marginBottom: '16px',
+          }}>
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', marginBottom: '8px', fontWeight: '700' }}>
+              📊 10대부터 70대까지, 평생 에너지 흐름
+            </div>
+            <DaewoonWaveChart data={daewoonChartA} originType={originType} />
+          </div>
+        )}
+        {monthlyChart.length > 0 && !isGoonghap && !isYukim && serviceType !== 'life' && (
           <div style={{
             background: 'rgba(30,10,60,0.8)',
             border: '1px solid rgba(150,80,255,0.3)',
@@ -392,9 +430,21 @@ export default function Result({ data, onBack, onGoonghap, onServiceChange, onUp
             <img src="/huamo2.png" alt="후아모" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
             <span style={{ color: '#c4b5fd', fontSize: '13px', fontWeight: '700' }}>더 자세히 알고 싶어?</span>
           </div>
+          {loadingNext && (
+            <div style={{
+              textAlign: 'center', color: '#e0aaff', fontSize: '13px',
+              fontWeight: '700', marginBottom: '12px',
+              padding: '10px', background: 'rgba(167,139,250,0.1)',
+              borderRadius: '10px',
+            }}>
+              후아모가 새로운 운세를 읽고 있어... 🤍 (최대 1분 정도 걸릴 수 있어요)
+            </div>
+          )}
           {(NEXT_PRODUCTS[serviceType] || NEXT_PRODUCTS.year).map((p, i) => (
             <button key={i}
+              disabled={loadingNext}
               onClick={() => {
+                if (loadingNext) return
                 if (p.type === 'goonghap') { onGoonghap && onGoonghap(); return }
                 if (onServiceChange) { onServiceChange(p.type); return }
                 onBack && onBack(p.type)
@@ -404,7 +454,10 @@ export default function Result({ data, onBack, onGoonghap, onServiceChange, onUp
                 alignItems: 'center', padding: '12px 14px', marginBottom: '8px',
                 background: 'rgba(255,255,255,0.05)',
                 border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '12px', cursor: 'pointer', textAlign: 'left',
+                borderRadius: '12px',
+                cursor: loadingNext ? 'not-allowed' : 'pointer',
+                textAlign: 'left',
+                opacity: loadingNext ? 0.5 : 1,
               }}>
               <div>
                 <div style={{ color: '#fff', fontSize: '13px', fontWeight: '700' }}>{p.label}</div>
@@ -414,7 +467,7 @@ export default function Result({ data, onBack, onGoonghap, onServiceChange, onUp
                 color: '#a78bfa', fontSize: '12px', fontWeight: '700',
                 background: 'rgba(167,139,250,0.15)',
                 padding: '4px 10px', borderRadius: '20px', whiteSpace: 'nowrap',
-              }}>{p.price}</div>
+              }}>{loadingNext ? '...' : p.price}</div>
             </button>
           ))}
         </div>
@@ -450,10 +503,27 @@ export default function Result({ data, onBack, onGoonghap, onServiceChange, onUp
                 logging: false,
                 ignoreElements: (el) => el.tagName === 'IFRAME',
               })
-              const a = document.createElement('a')
-              a.href = canvas.toDataURL('image/png')
-              a.download = '후아모_운세결과.png'
-              a.click()
+              const imgData = canvas.toDataURL('image/png')
+              const pdf = new jsPDF('p', 'mm', 'a4')
+              const pageWidth  = pdf.internal.pageSize.getWidth()
+              const pageHeight = pdf.internal.pageSize.getHeight()
+              const imgWidth  = pageWidth
+              const imgHeight = (canvas.height * imgWidth) / canvas.width
+
+              let heightLeft = imgHeight
+              let position = 0
+
+              pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+              heightLeft -= pageHeight
+
+              while (heightLeft > 0) {
+                position = heightLeft - imgHeight
+                pdf.addPage()
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+                heightLeft -= pageHeight
+              }
+
+              pdf.save('후아모_운세결과.pdf')
             } catch(err) {
               console.error('캡처 오류:', err)
               // 폴백: 텍스트 저장

@@ -14,7 +14,7 @@ export default function Privacy({ onBack, initialTab }) {
 
         <div style={s.tabs}>
           <button onClick={() => setTab("privacy")} style={{ ...s.tab, ...(tab==="privacy" ? s.tabOn : {}) }}>개인정보처리방침</button>
-          <button onClick={() => setTab("terms")}   style={{ ...s.tab, ...(tab==="terms"   ? s.tabOn : {}) }}>이용약관</button>
+          <button onClick={() => setTab("terms")}   style={{ ...s.tab, ...(tab==="terms"   ? s.tabOn : {}) }}>이용약관 및 환불정책</button>
           <button onClick={() => setTab("biz")}     style={{ ...s.tab, ...(tab==="biz"     ? s.tabOn : {}) }}>사업자정보</button>
         </div>
 
@@ -101,7 +101,7 @@ function Privacy_() {
 function Terms() {
   return (
     <div>
-      <h2 style={s.h2}>이용약관</h2>
+      <h2 style={s.h2}>이용약관 및 환불정책</h2>
       <p style={s.updated}>시행일: 2026년 6월 12일</p>
 
       <Section title="제1조 (목적)">
@@ -175,6 +175,7 @@ function Biz() {
             <tr><td style={s.tdLabel}>대표자</td><td style={s.td}>이경은</td></tr>
             <tr><td style={s.tdLabel}>사업자등록번호</td><td style={s.td}>219-88-01348</td></tr>
             <tr><td style={s.tdLabel}>사업장 주소</td><td style={s.td}>서울특별시 성동구 왕십리로 326, 604호</td></tr>
+            <tr><td style={s.tdLabel}>전화번호</td><td style={s.td}>070-8064-2663</td></tr>
             <tr><td style={s.tdLabel}>이메일</td><td style={s.td}>info@adelante-properties.com</td></tr>
           </tbody>
         </table>

@@ -4,3 +4,4 @@ __pycache__/
 .env
 node_service/node_modules/
 frontend/node_modules/
+*.bak*

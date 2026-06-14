@@ -132,7 +132,8 @@ async def calculate_saju(req: SajuRequest, db: AsyncSession = Depends(get_db)):
             saju_data={"pillars": pillars, "daewoon": daewoon},
             mbti_data=mbti_data,
             gender=req.gender,
-            target_year=target_year
+            target_year=target_year,
+            daewoon_chart=daewoon_chart
         )
         await set_reading_cache(db, cache_key, req.service_type, reading, target_year)
 

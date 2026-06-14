@@ -59,31 +59,13 @@ export default function Yukim({ onResult, onBack, preFill }) {
     if (!selectedType) { setError('질문 유형을 선택해줘'); return }
     if (selectedItems.length === 0) { setError('세부 항목을 하나 이상 선택해줘'); return }
     setError('')
-    setLoading(true)
-    const msgInterval = setInterval(() => {
-      setLoadingMsg(prev => (prev + 1) % LOADING_MESSAGES.length)
-    }, 1800)
-    try {
-      const result = await calculateYukim({
-        year: parseInt(preFill?.year || new Date().getFullYear()),
-        month: parseInt(preFill?.month || new Date().getMonth() + 1),
-        day: parseInt(preFill?.day || new Date().getDate()),
-        hour: preFill?.hour ?? null,
-        minute: 0,
-        gender: preFill?.gender || 'M',
-        calendar: preFill?.calendar || 'solar',
-        question_type: selectedType,
-        question_items: selectedItems,
-        question_text: questionText || `${selectedType} - ${selectedItems.join(', ')}`,
-      })
-      console.log('육임 결과:', result)
-      onResult({ ...result, type: 'yukim', form: preFill })
-    } catch (e) {
-      setError('앗, 뭔가 잘못됐어. 다시 시도해봐 🤍')
-    } finally {
-      setLoading(false)
-      clearInterval(msgInterval)
-    }
+    onResult({
+      type: 'yukim',
+      form: preFill,
+      question_type: selectedType,
+      question_items: selectedItems,
+      question_text: questionText || `${selectedType} - ${selectedItems.join(', ')}`,
+    })
   }
 
   return (

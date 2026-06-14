@@ -2,6 +2,7 @@ import hashlib
 import json
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from app.database import SajuCache, ReadingCache
 
 def make_cache_key(year: int, month: int, day: int, hour, gender: str) -> str:
@@ -58,13 +59,14 @@ async def set_reading_cache(
     reading: str,
     target_year: int = None
 ):
-    """풀이 캐시 저장"""
-    cache = ReadingCache(
+    """풀이 캐시 저장 (동시 요청으로 인한 중복 INSERT는 무시)"""
+    stmt = pg_insert(ReadingCache).values(
         cache_key=cache_key,
         service_type=service_type,
         target_year=target_year,
         reading=reading
+    ).on_conflict_do_nothing(
+        index_elements=["cache_key", "service_type", "target_year"]
     )
-    db.add(cache)
+    await db.execute(stmt)
     await db.commit()
-    return cache

@@ -44,6 +44,7 @@ async def generate_reading(
     monthly_chart: list = None,
     mbti_data_2: dict = None,
     gender_2: str = None,
+    daewoon_chart: list = None,
 ) -> str:
     if not OPENAI_API_KEY:
         return _dummy_response(service_type, mbti_data, monthly_chart or [])
@@ -82,16 +83,19 @@ async def generate_reading(
     elif service_type == "life":
         # 평생운세는 4파트 병렬 호출
         import asyncio
-        p1 = _build_prompt("life_part1", saju_data, mbti_data, gender, target_year, monthly_chart or [])
-        p2 = _build_prompt("life_part2", saju_data, mbti_data, gender, target_year, monthly_chart or [])
-        p3 = _build_prompt("life_part3", saju_data, mbti_data, gender, target_year, monthly_chart or [])
-        p4 = _build_prompt("life_part4", saju_data, mbti_data, gender, target_year, monthly_chart or [])
+        life_saju_data = {**saju_data, "daewoon_chart": daewoon_chart or []}
+        p1 = _build_prompt("life_part1", life_saju_data, mbti_data, gender, target_year, monthly_chart or [])
+        p2 = _build_prompt("life_part2", life_saju_data, mbti_data, gender, target_year, monthly_chart or [])
+        p3 = _build_prompt("life_part3", life_saju_data, mbti_data, gender, target_year, monthly_chart or [])
+        p4 = _build_prompt("life_part4", life_saju_data, mbti_data, gender, target_year, monthly_chart or [])
         part1, part2, part3, part4 = await asyncio.gather(
             _call_openai(p1, "gpt-4o", 3000),
             _call_openai(p2, "gpt-4o", 3000),
             _call_openai(p3, "gpt-4o", 3000),
             _call_openai(p4, "gpt-4o", 3000),
         )
+        for idx, part in enumerate([part1, part2, part3, part4], 1):
+            print(f"[DEBUG life part{idx}] len={len(part)} head={part[:80]!r}")
         text = part1 + "\n\n" + part2 + "\n\n" + part3 + "\n\n" + part4
         import re
         text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
@@ -341,15 +345,23 @@ def _build_prompt(
         )
     elif service_type == "life":
         return header + _prompt_life(origin_type, current_type, overall_flow, daewoon_quality)
+    elif service_type == "life_part1":
+        return header + _prompt_life_part1(origin_type, current_type, overall_flow, daewoon_quality, saju_data.get("daewoon_chart"))
+    elif service_type == "life_part2":
+        return header + _prompt_life_part2(origin_type, current_type, overall_flow, daewoon_quality, saju_data.get("daewoon_chart"))
+    elif service_type == "life_part3":
+        return header + _prompt_life_part3(origin_type, current_type, overall_flow, daewoon_quality, saju_data.get("daewoon_chart"))
+    elif service_type == "life_part4":
+        return header + _prompt_life_part4(origin_type, current_type, overall_flow, daewoon_quality, saju_data.get("daewoon_chart"))
     elif service_type == "goonghap":
         return header + _prompt_goonghap(origin_type, current_type)
     else:
-        return header + f"\n{target_year or ''}년 운세를 MZ세대 언어로 풀어주세요."
+        return header + f"\n{target_year or ''}년 운세를 따뜻하고 구체적으로 풀어주세요."
 
 
 def _prompt_year_free(target_year, origin_type, current_type, overall_flow):
     return f"""
-당신은 한국의 MZ세대가 열광하는 사주 운세 전문가 후아모입니다.
+당신은 한국 최고의 사주 운세 전문가 후아모입니다.
 따뜻하고 솔직하게, 마치 친한 친구가 털어놓듯 써주세요.
 전문 용어 없이, 읽자마자 "이거 완전 나 얘기다!" 싶은 느낌으로.
 
@@ -396,10 +408,11 @@ def _prompt_year_full(
 당신은 한국 최고의 사주 운세 전문가 후아모입니다.
 이것은 고객이 직접 돈을 내고 구매한 프리미엄 유료 서비스입니다.
 최고의 품질과 정성을 다해 작성해야 합니다.
-넷플릭스 드라마처럼 챕터별로 흥미롭게, 마치 친한 언니/오빠가
+챕터별로 흥미롭게 풀어가되, 마치 친한 언니/오빠가
 인생 상담해주듯 따뜻하고 솔직하게 써주세요.
 읽다 보면 "이거 완전 나 얘기다!", "다음 챕터 빨리 보고 싶다!" 싶은 느낌으로.
 절대 대충 쓰지 마세요. 각 챕터를 충분히 길고 깊이 있게 작성하세요.
+특정 세대의 유행어나 "MZ" 같은 표현은 쓰지 말고, 누구나 공감할 수 있는 자연스러운 말투로 써주세요.
 
 [타고난 기질] {origin_type}
 [현재 모드] {current_type}
@@ -414,7 +427,7 @@ def _prompt_year_full(
 각 챕터는 최소 300자 이상.
 사주·오행·천간·지지 등 전문용어 절대 금지.
 볼드(**) 금지. 이모지로만 구분.
-MZ세대 언어로 공감되게, 하지만 깊이 있게.
+쉽고 다정한 말투로 공감되게, 하지만 깊이 있게.
 
 후아모가 이렇게 생각해 🤍
 
@@ -604,7 +617,8 @@ def _prompt_goonghap(origin_type_a, origin_type_b, daewoon_a=None, daewoon_b=Non
 
     base = f"""
 당신은 MBTI와 동양 철학을 결합한 관계 분석 코치 후아모입니다.
-두 사람의 평생 궁합을 MZ식으로 따뜻하고 솔직하게 분석해주세요.
+두 사람의 평생 궁합을 따뜻하고 솔직하게, 그리고 구체적으로 분석해주세요.
+특정 세대의 유행어나 "MZ" 같은 표현은 쓰지 말고, 누구나 공감할 수 있는 자연스러운 말투로 써주세요.
 반드시 4,000자 이상 작성하세요. 절대 요약하거나 줄이지 마세요.
 전문용어 절대 금지. 볼드(**) 절대 금지. 헤더(###) 절대 금지. 이모지로만 구분.
 
@@ -666,6 +680,28 @@ def _prompt_goonghap(origin_type_a, origin_type_b, daewoon_a=None, daewoon_b=Non
 """
 
 
+
+def _format_daewoon_for_prompt(daewoon_chart, origin_type):
+    """
+    대운 차트 데이터를 프롬프트용 텍스트로 변환.
+    각 시기의 MBTI 변화(원래 기질 대비)와 길흉(quality_label)을 함께 명시하여,
+    GPT가 "이 시기엔 이런 기운/성향으로 바뀌니 이렇게 하라"는 식의
+    개인화된 조언을 만들 수 있도록 한다.
+    """
+    if not daewoon_chart:
+        return ""
+    lines = []
+    for dw in daewoon_chart:
+        age_label = dw.get("age_label", "")
+        m_type    = dw.get("type", "")
+        quality   = dw.get("quality_label", "")
+        if m_type == origin_type:
+            change_desc = f"타고난 {origin_type} 성향 그대로 유지"
+        else:
+            change_desc = f"타고난 {origin_type}에서 {m_type} 성향으로 변화"
+        lines.append(f"  - {age_label}: {change_desc} / 이 시기의 기운: {quality}")
+    return "\n".join(lines)
+
 def _prompt_life_part1(origin_type, current_type, overall_flow, daewoon_quality, daewoon_chart=None):
     daewoon_str = ""
     if daewoon_chart:
@@ -673,7 +709,8 @@ def _prompt_life_part1(origin_type, current_type, overall_flow, daewoon_quality,
             daewoon_str += f"  {dw.get('age_label','')}: {dw.get('type','')} — {dw.get('quality_label','')}\n"
     return f"""
 당신은 MBTI와 동양 철학을 결합한 인생 코치 후아모입니다.
-MZ세대 언어로 따뜻하고 솔직하게, 마치 친한 언니/오빠가 말해주듯 써주세요.
+따뜻하고 솔직하게, 마치 친한 언니/오빠가 말해주듯 써주세요.
+특정 세대의 유행어나 "MZ" 같은 표현은 쓰지 말고, 누구나 공감할 수 있는 자연스러운 말투로 써주세요.
 반드시 3,000자 이상 작성하세요. 절대 요약하거나 줄이지 마세요.
 전문용어 절대 금지. 볼드(**) 절대 금지. 이모지로만 구분.
 
@@ -685,10 +722,10 @@ MZ세대 언어로 따뜻하고 솔직하게, 마치 친한 언니/오빠가 말
 {daewoon_str}
 
 후아모가 이렇게 생각해 🤍
-(당신을 깊이 이해한다는 느낌의 첫 인사 — 300자 이상, MZ식으로 따뜻하게)
+(당신을 깊이 이해한다는 느낌의 첫 인사 — 300자 이상, 따뜻하게)
 
 🔍 당신은 왜 이런 사람인가
-(타고난 기질과 현재 모습의 차이를 MZ식으로 깊이 분석 — 500자 이상)
+(타고난 기질과 현재 모습의 차이를 깊이 분석 — 500자 이상)
 
 💪 당신의 숨겨진 강점
 (스스로도 잘 모르는 강점들 — 구체적이고 공감되게 — 400자 이상)
@@ -697,26 +734,31 @@ MZ세대 언어로 따뜻하고 솔직하게, 마치 친한 언니/오빠가 말
 (약점을 따뜻하게, "이래서 힘들었구나" 싶은 공감 — 400자 이상)
 
 👥 인간관계 패턴
-(어떤 사람과 맞고 왜 충돌하는지 — MZ식으로 현실감 있게 — 500자 이상)
+(어떤 사람과 맞고 왜 충돌하는지 — 현실감 있게 — 500자 이상)
 
 ❤️ 연애 패턴
 (연애할 때 어떤 모습인지, 왜 그런지 — 솔직하고 재미있게 — 500자 이상)
 """
 
 def _prompt_life_part2(origin_type, current_type, overall_flow, daewoon_quality, daewoon_chart=None):
-    daewoon_str = ""
-    if daewoon_chart:
-        for dw in daewoon_chart:
-            daewoon_str += f"  {dw.get('age_label','')}: {dw.get('type','')} — {dw.get('quality_label','')}\n"
+    daewoon_str = _format_daewoon_for_prompt(daewoon_chart, origin_type)
     return f"""
 당신은 MBTI와 동양 철학을 결합한 인생 코치 후아모입니다.
 반드시 3,500자 이상 작성하세요. 절대 요약하거나 줄이지 마세요.
 전문용어 절대 금지. 볼드(**) 절대 금지. 이모지로만 구분.
-각 연령대별 주요 관심사를 반드시 다루세요.
+
+[필수 지침]
+아래 [시기별 기운 변화] 데이터는 이 사람만의 고유한 정보입니다.
+각 연령대(10대/20대/30대) 설명에서 반드시:
+1) 그 시기에 타고난 성향에서 어떤 성향으로 바뀌는지 (예: "원래는 계획적인데, 이 시기엔 즉흥적으로 변해요")
+2) 그 변화로 인해 그 시기에 특히 잘 맞는 일/조심할 일이 무엇인지
+3) 이 시기의 기운(길/흉/주의)에 따라 적극적으로 활용할지, 조심스럽게 대응할지
+를 구체적으로 녹여서 설명하세요. 일반적인 나이대 조언(예: "20대엔 도전하세요")이 아니라,
+이 사람의 그 시기 MBTI 변화와 기운에 기반한 맞춤 조언이어야 합니다.
 
 [타고난 기질] {origin_type} / [현재 모드] {current_type}
 [전체 흐름] {overall_flow}
-[시기별 에너지 변화 — 이 데이터를 반드시 활용하세요]
+[시기별 기운 변화 — 이 데이터를 반드시 활용하세요]
 {daewoon_str}
 
 💰 돈 버는 방식
@@ -732,7 +774,7 @@ def _prompt_life_part2(origin_type, current_type, overall_flow, daewoon_quality,
 - 첫사랑/연애: 10대 감정 흐름
 - 부모와의 관계: 가족 역학
 - 이 시기 조언: 지금 해야 할 것
-(전체 700자 이상, MZ식으로 공감되게)
+(전체 700자 이상, 공감되게)
 
 🌱 20대의 흐름
 이 시기 MBTI 에너지와 함께 아래를 구체적으로:
@@ -741,7 +783,7 @@ def _prompt_life_part2(origin_type, current_type, overall_flow, daewoon_quality,
 - 재물: 20대 돈 관리와 첫 목돈
 - 인간관계: 진짜 친구 vs 스쳐가는 인연
 - 이 시기 조언: 20대에 반드시 해야 할 것
-(전체 700자 이상, MZ식으로 공감되게)
+(전체 700자 이상, 공감되게)
 
 🌊 30대의 흐름
 이 시기 MBTI 에너지와 함께 아래를 구체적으로:
@@ -750,22 +792,27 @@ def _prompt_life_part2(origin_type, current_type, overall_flow, daewoon_quality,
 - 커리어/이직: 30대 직장 변화
 - 부부관계: 파트너와의 갈등과 조화
 - 이 시기 조언: 30대에 반드시 해야 할 것
-(전체 700자 이상, MZ식으로 공감되게)
+(전체 700자 이상, 공감되게)
 """
 
 def _prompt_life_part3(origin_type, current_type, overall_flow, daewoon_quality, daewoon_chart=None):
-    daewoon_str = ""
-    if daewoon_chart:
-        for dw in daewoon_chart:
-            daewoon_str += f"  {dw.get('age_label','')}: {dw.get('type','')} — {dw.get('quality_label','')}\n"
+    daewoon_str = _format_daewoon_for_prompt(daewoon_chart, origin_type)
     return f"""
 당신은 MBTI와 동양 철학을 결합한 인생 코치 후아모입니다.
 반드시 3,500자 이상 작성하세요. 절대 요약하거나 줄이지 마세요.
 전문용어 절대 금지. 볼드(**) 절대 금지. 이모지로만 구분.
-각 연령대별 주요 관심사를 반드시 다루세요.
+
+[필수 지침]
+아래 [시기별 기운 변화] 데이터는 이 사람만의 고유한 정보입니다.
+각 연령대(40대/50대/60대/70대) 설명에서 반드시:
+1) 그 시기에 타고난 성향에서 어떤 성향으로 바뀌는지 (예: "원래는 내향적인데, 이 시기엔 외향적으로 활동 범위가 넓어져요")
+2) 그 변화로 인해 그 시기에 특히 조심할 점/챙기면 좋을 점이 무엇인지
+3) 이 시기의 기운(길/흉/주의)에 따라 적극적으로 나설지, 한 발 물러서서 관리할지
+를 구체적으로 녹여서 설명하세요. "50대엔 은퇴 준비하세요" 같은 누구에게나 통하는 말이 아니라,
+이 사람의 그 시기 MBTI 변화와 기운에 기반한 맞춤 조언이어야 합니다.
 
 [타고난 기질] {origin_type} / [현재 모드] {current_type}
-[시기별 에너지 변화 — 이 데이터를 반드시 활용하세요]
+[시기별 기운 변화 — 이 데이터를 반드시 활용하세요]
 {daewoon_str}
 
 🗺️ 40대의 흐름
@@ -776,7 +823,7 @@ def _prompt_life_part3(origin_type, current_type, overall_flow, daewoon_quality,
 - 재물: 40대 자산 증식과 관리
 - 건강: 40대 건강 적신호와 관리법
 - 이 시기 조언
-(전체 700자 이상, MZ식으로 공감되게)
+(전체 700자 이상, 공감되게)
 
 💡 50대의 흐름
 이 시기 MBTI 에너지와 함께 아래를 구체적으로:
@@ -786,7 +833,7 @@ def _prompt_life_part3(origin_type, current_type, overall_flow, daewoon_quality,
 - 가족: 자녀 독립과 빈 둥지 증후군
 - 부부: 50대 부부 관계 재정립
 - 이 시기 조언
-(전체 700자 이상, MZ식으로 공감되게)
+(전체 700자 이상, 공감되게)
 
 🛡️ 60대의 흐름
 이 시기 MBTI 에너지와 함께 아래를 구체적으로:
@@ -820,14 +867,14 @@ def _prompt_life_part4(origin_type, current_type, overall_flow, daewoon_quality,
 [타고난 기질] {origin_type} / [현재 모드] {current_type}
 [전체 흐름] {overall_flow}
 
-🎯 인생 주요 전환점
-(몇 살에 큰 변화가 오는지, 어떤 사건들이 있는지 구체적으로 — 600자 이상)
+🎯 인생의 흐름에서 주목할 시기들
+(앞으로 인생에서 에너지가 크게 바뀌는 시기들과, 그 시기에 어떤 마음가짐과 태도를 가지면 좋을지 — 600자 이상)
 
-📅 앞으로 10년 연도별 흐름
-(매년 핵심 키워드와 조언 한 줄씩 — 10줄 이상)
+📅 앞으로 10년의 테마와 조언
+(앞으로 10년을 시기별로 나누어 각 시기의 핵심 테마와 실천 조언을 한 줄씩 — 10줄 이상)
 
 🌈 후아모가 전하는 인생 조언
-(지금 당신에게 꼭 필요한 말 — MZ식으로 따뜻하게 — 500자 이상)
+(지금 당신에게 꼭 필요한 말 — 따뜻하게 — 500자 이상)
 
 🌟 인생 총평
 (당신의 인생을 한 편의 드라마로 감동적으로 — 600자 이상)

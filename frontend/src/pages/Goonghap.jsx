@@ -82,45 +82,11 @@ export default function Goonghap({ onResult, onBack, preFill }) {
     if (errB) { setError(errB); return }
 
     setError('')
-    setLoading(true)
-    setLoadingMsg(0)
-    const msgInterval = setInterval(() => {
-      setLoadingMsg(prev => (prev + 1) % LOADING_MESSAGES.length)
-    }, 1800)
-    try {
-      const result = await calculateGoonghap({
-        person_a: {
-          year: parseInt(personA.year),
-          month: parseInt(personA.month),
-          day: parseInt(personA.day),
-          hour: personA.hour,
-          minute: 0,
-          gender: personA.gender,
-          calendar: personA.calendar || 'solar',
-        },
-        person_b: {
-          year: parseInt(personB.year),
-          month: parseInt(personB.month),
-          day: parseInt(personB.day),
-          hour: personB.hour,
-          minute: 0,
-          gender: personB.gender,
-          calendar: personB.calendar || 'solar',
-        },
-        target_year: new Date().getFullYear()
-      })
-      onResult({
-        type: 'goonghap',
-        ...result,
-        formA: personA,
-        formB: personB,
-      })
-    } catch (e) {
-      setError('앗, 뭔가 잘못됐어. 다시 시도해봐 🤍')
-    } finally {
-      setLoading(false)
-      clearInterval(msgInterval)
-    }
+    onResult({
+      type: 'goonghap',
+      formA: personA,
+      formB: personB,
+    })
   }
 
   return (
@@ -206,19 +172,28 @@ export default function Goonghap({ onResult, onBack, preFill }) {
             우리 궁합 볼까? 💫
           </h1>
           <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', margin: 0 }}>
-            두 사람의 기운이 만나는 방식을 읽어줄게
+            {preFill ? '상대방 정보만 입력하면 바로 볼 수 있어' : '두 사람의 기운이 만나는 방식을 읽어줄게'}
           </p>
         </div>
 
         {/* 나 */}
-        <PersonForm
-          label="나"
-          emoji="🙋"
-          color="#38bdf8"
-          form={personA}
-          setForm={setPersonA}
-          hours={HOURS}
-        />
+        {preFill ? (
+          <PersonFixed
+            label="나"
+            emoji="🙋"
+            color="#38bdf8"
+            form={personA}
+          />
+        ) : (
+          <PersonForm
+            label="나"
+            emoji="🙋"
+            color="#38bdf8"
+            form={personA}
+            setForm={setPersonA}
+            hours={HOURS}
+          />
+        )}
 
         {/* 구분선 */}
         <div style={{ textAlign: 'center', margin: '12px 0',
@@ -269,6 +244,44 @@ export default function Goonghap({ onResult, onBack, preFill }) {
         </button>
       </div>
     </div>
+    </div>
+  )
+}
+
+
+function PersonFixed({ label, emoji, color, form }) {
+  const calendarLabel = (form.calendar || 'solar') === 'solar' ? '☀️ 양력' : '🌙 음력'
+  const hourLabel = form.hour == null
+    ? '시간 모름'
+    : `${String(form.hour).padStart(2,'0')}시대`
+  const genderLabel = form.gender === 'M' ? '♂ 남자' : '♀ 여자'
+
+  return (
+    <div style={{
+      background: 'rgba(255,255,255,0.05)',
+      borderRadius: '20px', padding: '16px',
+      border: `1px solid ${color}30`,
+      marginBottom: '12px',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center',
+        gap: '6px', marginBottom: '10px' }}>
+        <span style={{ fontSize: '16px' }}>{emoji}</span>
+        <span style={{ color, fontSize: '14px', fontWeight: '700' }}>
+          {label}
+        </span>
+        <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px', marginLeft: 'auto' }}>
+          내 정보 (이미 입력됨)
+        </span>
+      </div>
+      <div style={{
+        color: '#fff', fontSize: '14px', fontWeight: '600',
+        marginBottom: '4px',
+      }}>
+        {form.year}년 {form.month}월 {form.day}일 · {calendarLabel}
+      </div>
+      <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px' }}>
+        {hourLabel} · {genderLabel}
+      </div>
     </div>
   )
 }
