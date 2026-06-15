@@ -211,7 +211,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen">
-      {page === 'home' && <Home onResult={goResult} onGoonghap={goGoonghap} onYukim={goYukim} onGoPrivacy={(tab) => { setPrivacyTab(tab || 'privacy'); setPage('privacy') }} />}
+      {page === 'home' && <Home onResult={goResult} onGoonghap={goGoonghap} onYukim={goYukim} onGoPrivacy={(tab) => { setPrivacyTab(tab || 'privacy'); setPage('privacy') }} onGoContact={() => setShowContact(true)} />}
       {page === 'privacy' && <Privacy onBack={() => setPage('home')} initialTab={privacyTab} />}
       {page === 'yukim' && (
         <Yukim
@@ -256,26 +256,7 @@ export default function App() {
           }}
         />
       )}
-      {(page === 'home') && (
-        <button
-          onClick={() => setShowContact(true)}
-          style={{
-            position: 'fixed', bottom: '20px', right: '20px',
-            zIndex: 100,
-            background: 'linear-gradient(135deg, rgba(30,10,60,0.95), rgba(10,5,40,0.95))',
-            border: '1px solid rgba(150,80,255,0.4)',
-            borderRadius: '50px',
-            padding: '10px 18px',
-            color: 'rgba(200,180,255,0.9)',
-            fontSize: '13px', fontWeight: '600',
-            cursor: 'pointer',
-            boxShadow: '0 4px 20px rgba(120,40,255,0.3)',
-            backdropFilter: 'blur(10px)',
-          }}
-        >
-          📩 문의하기
-        </button>
-      )}
+
       {showContact && (
         <ContactModal onClose={() => setShowContact(false)} />
       )}

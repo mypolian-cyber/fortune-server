@@ -472,14 +472,27 @@ export default function Result({ data, onBack, onGoonghap, onServiceChange, onUp
           ))}
         </div>
 
-        {/* 다시 보기 */}
-        <button onClick={onBack} style={{
-          width: '100%', padding: '14px',
-          borderRadius: '14px', border: '1px solid rgba(255,255,255,0.1)',
-          background: 'transparent', color: 'rgba(255,255,255,0.5)',
-          fontSize: '14px', cursor: 'pointer',
+        {/* 공유 버튼 */}
+        <button onClick={async () => {
+          const url = 'https://fortune.adelante-properties.com';
+          const title = '후아모 — 사주×MBTI 운세';
+          const text = '내 사주와 MBTI로 보는 맞춤 운세. 나도 해봤어!';
+          if (navigator.share) {
+            try { await navigator.share({ title, text, url }); } catch(e) {}
+          } else {
+            await navigator.clipboard.writeText(url);
+            alert('링크가 복사됐습니다!');
+          }
+        }} style={{
+          width: '100%', padding: '12px', marginBottom: '8px',
+          borderRadius: '12px', border: '1px solid rgba(236,72,153,0.4)',
+          background: 'rgba(236,72,153,0.1)',
+          color: 'rgba(255,255,255,0.85)',
+          cursor: 'pointer', fontSize: '13px', fontWeight: '600',
         }}>
-        {/* 저장/인쇄 버튼 */}
+          🔗 친구에게 공유하기
+        </button>
+        {/* 인쇄/저장 버튼 */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
           <button onClick={(e) => { e.stopPropagation(); window.print(); }} style={{
             flex: 1, padding: '12px',
@@ -509,24 +522,19 @@ export default function Result({ data, onBack, onGoonghap, onServiceChange, onUp
               const pageHeight = pdf.internal.pageSize.getHeight()
               const imgWidth  = pageWidth
               const imgHeight = (canvas.height * imgWidth) / canvas.width
-
               let heightLeft = imgHeight
               let position = 0
-
               pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
               heightLeft -= pageHeight
-
               while (heightLeft > 0) {
                 position = heightLeft - imgHeight
                 pdf.addPage()
                 pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
                 heightLeft -= pageHeight
               }
-
               pdf.save('후아모_운세결과.pdf')
             } catch(err) {
               console.error('캡처 오류:', err)
-              // 폴백: 텍스트 저장
               const el = document.getElementById('result-content')
               const text = el ? el.innerText : ''
               const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
@@ -545,6 +553,13 @@ export default function Result({ data, onBack, onGoonghap, onServiceChange, onUp
             💾 저장하기
           </button>
         </div>
+        {/* 다시 보기 */}
+        <button onClick={onBack} style={{
+          width: '100%', padding: '14px',
+          borderRadius: '14px', border: '1px solid rgba(255,255,255,0.1)',
+          background: 'transparent', color: 'rgba(255,255,255,0.5)',
+          fontSize: '14px', cursor: 'pointer',
+        }}>
           다시 볼게 🤍
         </button>
       </div>

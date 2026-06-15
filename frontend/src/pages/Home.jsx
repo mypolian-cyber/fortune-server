@@ -40,7 +40,7 @@ const LOADING_MESSAGES = [
   '거의 다 됐어, 조금만 기다려... ⭐',
 ]
 
-export default function Home({ onResult, onGoonghap, onYukim, onGoPrivacy }) {
+export default function Home({ onResult, onGoonghap, onYukim, onGoPrivacy, onGoContact }) {
   const [loadingMsg, setLoadingMsg] = useState(0)
   const [form, setForm] = useState({
     year: '', month: '', day: '',
@@ -335,6 +335,36 @@ export default function Home({ onResult, onGoonghap, onYukim, onGoPrivacy }) {
         }}>
           16가지 MBTI 중 진짜 내 유형, 사주로 찾아줄게
         </p>
+        <div style={{ display: 'flex', gap: '8px', marginTop: '8px', width: '100%', maxWidth: '400px' }}>
+          <button onClick={async () => {
+            const url = 'https://fortune.adelante-properties.com';
+            const title = '후아모 — 사주×MBTI 운세';
+            const text = '16가지 MBTI 중 진짜 내 유형, 사주로 찾아줄게!';
+            if (navigator.share) {
+              try { await navigator.share({ title, text, url }); } catch(e) {}
+            } else {
+              await navigator.clipboard.writeText(url);
+              alert('링크가 복사됐습니다!');
+            }
+          }} style={{
+            flex: 1, padding: '8px 0',
+            borderRadius: '10px', border: '1px solid rgba(236,72,153,0.4)',
+            background: 'rgba(236,72,153,0.1)',
+            color: 'rgba(255,255,255,0.75)',
+            cursor: 'pointer', fontSize: '12px', fontWeight: '600',
+          }}>
+            🔗 공유하기
+          </button>
+          <button onClick={() => onGoContact && onGoContact()} style={{
+            flex: 1, padding: '8px 0',
+            borderRadius: '10px', border: '1px solid rgba(167,139,250,0.4)',
+            background: 'rgba(167,139,250,0.1)',
+            color: 'rgba(255,255,255,0.75)',
+            cursor: 'pointer', fontSize: '12px', fontWeight: '600',
+          }}>
+            📩 문의하기
+          </button>
+        </div>
       </div>
 
       {/* 메인 카드 */}
@@ -641,6 +671,17 @@ export default function Home({ onResult, onGoonghap, onYukim, onGoPrivacy }) {
             }}>
             사업자정보
           </button>
+        </div>
+        {/* 사업자정보 */}
+        <div style={{
+          marginTop: '12px', padding: '12px 16px',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          color: 'rgba(255,255,255,0.25)', fontSize: '10px',
+          lineHeight: '1.8', textAlign: 'center',
+        }}>
+          아델란테주식회사 · 대표 이경은 · 사업자등록번호 219-88-01348<br/>
+          서울특별시 성동구 왕십리로 326, 604호 · 070-8064-2663<br/>
+          info@adelante-properties.com
         </div>
       </div>
     </div>
