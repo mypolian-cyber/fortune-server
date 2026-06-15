@@ -17,6 +17,14 @@ class ContactRequest(BaseModel):
 async def send_contact(req: ContactRequest):
     if not req.name or not req.email or not req.message:
         raise HTTPException(status_code=400, detail="필수 항목을 입력해주세요")
+    # 인젝션 공격 차단
+    import re as _re
+    _patterns = ['sleep(', 'sysdate(', 'select ', 'union ', 'drop ', 'exec(', 'eval(', '<script', 'javascript:', 'benchmark(', 'insert ', '0x']
+    _combined = f"{req.name} {req.email} {getattr(req, 'subject', '')} {req.message}".lower()
+    if any(p in _combined for p in _patterns):
+        raise HTTPException(status_code=400, detail="올바른 내용을 입력해주세요")
+    if len(req.name) > 100 or len(req.message) > 2000 or len(req.email) > 200:
+        raise HTTPException(status_code=400, detail="입력값이 너무 깁니다")
 
     smtp_host     = os.getenv("SMTP_HOST", "smtp.gmail.com")
     smtp_port     = int(os.getenv("SMTP_PORT", "587"))
