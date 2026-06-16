@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from app.database import engine, Base
+from app.models import unified_payment  # unified_payments 테이블 등록
 
 load_dotenv()
 
@@ -28,13 +29,14 @@ async def startup():
 async def health():
     return {"status": "ok"}
 
-from app.routers import saju, payment, yukim, goonghap, contact, admin
+from app.routers import saju, payment, yukim, goonghap, contact, admin, unified_admin
 app.include_router(saju.router, prefix="/api/saju", tags=["saju"])
 app.include_router(payment.router, prefix="/api/payment", tags=["payment"])
 app.include_router(yukim.router, prefix="/api/yukim", tags=["yukim"])
 app.include_router(goonghap.router, prefix="/api/goonghap", tags=["goonghap"])
 app.include_router(contact.router, prefix="/api/contact", tags=["contact"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
+app.include_router(unified_admin.router, prefix="/api/unified-admin", tags=["unified-admin"])
 
 from fastapi import UploadFile, File
 import shutil

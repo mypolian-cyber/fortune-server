@@ -101,6 +101,20 @@ async def confirm_payment(req: PaymentConfirm, db: AsyncSession = Depends(get_db
     result = await db.execute(stmt)
     payment = result.scalar_one_or_none()
 
+    # 카드정보 추출
+    pay_method_data = portone_payment.get("method", {})
+    card_company = ""
+    card_last4   = ""
+    pay_method_str = "CARD"
+    if "card" in pay_method_data:
+        card_info    = pay_method_data.get("card", {})
+        card_company = card_info.get("issuer", {}).get("name", "")
+        card_num     = card_info.get("number", "")
+        card_last4   = card_num[-4:] if card_num else ""
+        pay_method_str = "CARD"
+    elif "easyPay" in pay_method_data:
+        pay_method_str = pay_method_data.get("easyPay", {}).get("provider", "EASYPAY")
+
     if payment:
         payment.payment_key = req.payment_id
         payment.status = "completed"
@@ -108,6 +122,24 @@ async def confirm_payment(req: PaymentConfirm, db: AsyncSession = Depends(get_db
         cache_key = payment.cache_key
     else:
         cache_key = req.cache_key
+
+    # unified_payments 저장
+    from app.models.unified_payment import UnifiedPayment
+    from datetime import datetime
+    unified = UnifiedPayment(
+        service      = "huamo",
+        service_type = req.service_type,
+        order_id     = merchant_uid,
+        payment_key  = req.payment_id,
+        pay_method   = pay_method_str,
+        card_company = card_company,
+        card_last4   = card_last4,
+        amount       = paid_amount,
+        status       = "completed",
+        paid_at      = datetime.utcnow(),
+    )
+    db.add(unified)
+    await db.commit()
 
     return {
         "success": True,

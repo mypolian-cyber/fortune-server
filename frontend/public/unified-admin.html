@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>통합 어드민 - 결제/환불 관리</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Noto Sans KR', sans-serif; background: #f0f2f5; color: #1a1a1a; font-size: 14px; }
+
+/* 로그인 */
+.login-bg { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #1a0a2e; }
+.login-box { background: #fff; border-radius: 16px; padding: 36px 32px; width: 380px; box-shadow: 0 8px 40px rgba(0,0,0,0.3); }
+.login-title { font-size: 20px; font-weight: 700; color: #1a0a2e; margin-bottom: 6px; }
+.login-sub { font-size: 13px; color: #999; margin-bottom: 24px; }
+.login-field { margin-bottom: 14px; }
+.login-field label { display: block; font-size: 12px; color: #888; margin-bottom: 5px; font-weight: 600; }
+.login-field input { width: 100%; padding: 11px 14px; border: 1.5px solid #e5e5e5; border-radius: 8px; font-size: 14px; }
+.login-field input:focus { outline: none; border-color: #7c3aed; }
+.login-step { display: none; }
+.login-step.active { display: block; }
+.otp-desc { font-size: 12px; color: #7c3aed; background: #f7f4ff; padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; }
+.otp-input { letter-spacing: 8px; font-size: 22px; font-weight: 700; text-align: center; }
+.login-btn { width: 100%; padding: 12px; border-radius: 8px; border: none; cursor: pointer; font-size: 15px; font-weight: 700; background: #7c3aed; color: #fff; margin-top: 4px; }
+.login-btn:hover { opacity: 0.88; }
+.login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.login-err { font-size: 12px; color: #e24b4a; margin-top: 8px; min-height: 18px; }
+.resend-btn { font-size: 12px; color: #7c3aed; background: none; border: none; cursor: pointer; margin-top: 8px; text-decoration: underline; }
+
+/* 헤더 */
+.header { background: #1a0a2e; color: #fff; padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; }
+.header-left { display: flex; align-items: center; gap: 12px; }
+.header h1 { font-size: 18px; font-weight: 700; }
+.header-sub { font-size: 12px; color: rgba(255,255,255,0.45); }
+.btn-logout { font-size: 12px; color: rgba(255,255,255,0.6); cursor: pointer; padding: 5px 14px; border: 1px solid rgba(255,255,255,0.25); border-radius: 6px; background: none; }
+.btn-logout:hover { background: rgba(255,255,255,0.1); color:#fff; }
+
+.tab-bar { background: #fff; border-bottom: 2px solid #e5e5e5; padding: 0 28px; display: flex; }
+.tab-btn { padding: 14px 24px; cursor: pointer; border: none; background: none; font-size: 14px; font-weight: 500; color: #999; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+.tab-btn.on { color: #7c3aed; border-bottom-color: #7c3aed; font-weight: 700; }
+
+.wrap { max-width: 1400px; margin: 0 auto; padding: 28px; }
+.card { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 6px rgba(0,0,0,0.07); }
+.card-title { font-size: 15px; font-weight: 700; margin-bottom: 18px; color: #1a0a2e; }
+
+.search-row { display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 16px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label { font-size: 11px; color: #999; font-weight: 600; }
+.field input, .field select { padding: 9px 12px; border: 1.5px solid #e5e5e5; border-radius: 8px; font-size: 13px; background: #fafafa; color: #1a1a1a; width: 160px; }
+.field input:focus, .field select:focus { outline: none; border-color: #7c3aed; background: #fff; }
+
+.btn { padding: 9px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 13px; font-weight: 700; transition: opacity 0.15s; }
+.btn:hover { opacity: 0.85; }
+.btn-primary { background: #7c3aed; color: #fff; }
+.btn-danger  { background: #e24b4a; color: #fff; }
+.btn-outline { background: #fff; color: #7c3aed; border: 1.5px solid #7c3aed; }
+.btn-green   { background: #16a34a; color: #fff; }
+.btn-sm      { padding: 5px 12px; font-size: 12px; border-radius: 6px; }
+
+.summary-bar { display: flex; gap: 28px; padding: 12px 18px; background: #f7f4ff; border-radius: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.summary-item { font-size: 13px; color: #666; }
+.summary-item strong { color: #7c3aed; font-size: 15px; font-weight: 700; margin-left: 4px; }
+
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { background: #f4f0ff; padding: 11px 14px; text-align: center; font-weight: 700; white-space: nowrap; border-bottom: 2px solid #ddd6fe; color: #4c1d95; }
+td { padding: 10px 14px; border-bottom: 1px solid #f0f0f0; white-space: nowrap; text-align: center; vertical-align: middle; }
+tr:hover td { background: #faf8ff; }
+
+.badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+.badge-completed { background: #dcfce7; color: #166534; }
+.badge-refunded  { background: #fee2e2; color: #991b1b; }
+.badge-CARD      { background: #ede9fe; color: #5b21b6; }
+.badge-KAKAOPAY  { background: #fef9c3; color: #854d0e; }
+.badge-NAVERPAY  { background: #dcfce7; color: #166534; }
+.badge-TOSSPAY   { background: #dbeafe; color: #1e40af; }
+.badge-huamo     { background: #dbeafe; color: #1e40af; }
+.badge-ziwei     { background: #fce7f3; color: #9d174d; }
+.amount          { font-weight: 700; }
+.refund-amount   { font-weight: 700; color: #e24b4a; }
+
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 300; }
+.modal { background: #fff; border-radius: 16px; padding: 28px; width: 460px; max-width: 96vw; box-shadow: 0 12px 48px rgba(0,0,0,0.2); }
+.modal-title { font-size: 17px; font-weight: 700; margin-bottom: 20px; color: #1a0a2e; }
+.modal-info { background: #f7f4ff; border-radius: 10px; padding: 16px; margin-bottom: 20px; }
+.modal-info-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding: 5px 0; border-bottom: 1px solid rgba(124,58,237,0.1); }
+.modal-info-row:last-child { border-bottom: none; }
+.modal-info-row .label { color: #888; }
+.modal-info-row .value { font-weight: 600; }
+.modal-info-row.highlight .value { color: #e24b4a; font-size: 16px; font-weight: 700; }
+.modal-field { margin-bottom: 16px; }
+.modal-field label { display: block; font-size: 12px; color: #888; margin-bottom: 6px; font-weight: 600; }
+.modal-field input { width: 100%; padding: 10px 12px; border: 1.5px solid #e5e5e5; border-radius: 8px; font-size: 13px; }
+.modal-field input:focus { outline: none; border-color: #7c3aed; }
+.modal-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+.refund-type-wrap { display: flex; gap: 10px; }
+.refund-type-btn { flex: 1; padding: 12px 8px; border-radius: 10px; border: 2px solid #e5e5e5; background: #fff; cursor: pointer; text-align: center; font-size: 13px; font-weight: 600; transition: all 0.15s; }
+.refund-type-btn.on      { border-color: #7c3aed; background: #f7f4ff; color: #7c3aed; }
+.refund-type-btn.cash-on { border-color: #f59e0b; background: #fffbeb; color: #b45309; }
+
+.step-guide { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; font-size: 13px; color: #888; }
+.step { background: #7c3aed; color: #fff; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+.step-arrow { color: #ccc; }
+
+.loading { text-align: center; padding: 48px; color: #aaa; }
+.empty   { text-align: center; padding: 48px; color: #ccc; font-size: 15px; }
+.hidden  { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- ===== 로그인 화면 ===== -->
+<div id="login-screen" class="login-bg">
+  <div class="login-box">
+    <div class="login-title">🔐 통합 어드민</div>
+    <div class="login-sub">후아모 + 자미두수 결제/환불 관리</div>
+
+    <!-- 1단계: 비밀번호 -->
+    <div id="step1" class="login-step active">
+      <div class="login-field">
+        <label>관리자 비밀번호</label>
+        <input type="password" id="login-pass" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter') sendOTP()">
+      </div>
+      <button class="login-btn" onclick="sendOTP()" id="send-btn">인증코드 발송</button>
+      <div class="login-err" id="step1-err"></div>
+    </div>
+
+    <!-- 2단계: OTP -->
+    <div id="step2" class="login-step">
+      <div class="otp-desc">📧 <strong>info@adelante-properties.com</strong>으로 인증코드를 발송했습니다.<br>5분 안에 입력해주세요.</div>
+      <div class="login-field">
+        <label>인증코드 6자리</label>
+        <input type="text" id="otp-input" class="otp-input" placeholder="000000" maxlength="6" onkeydown="if(event.key==='Enter') verifyOTP()">
+      </div>
+      <button class="login-btn" onclick="verifyOTP()" id="verify-btn">로그인</button>
+      <div class="login-err" id="step2-err"></div>
+      <button class="resend-btn" onclick="resendOTP()">코드 재발송</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 메인 화면 ===== -->
+<div id="main-screen" class="hidden">
+  <div class="header">
+    <div class="header-left">
+      <h1>🔐 통합 어드민</h1>
+      <span class="header-sub">후아모 + 자미두수 결제/환불 관리</span>
+    </div>
+    <button class="btn-logout" onclick="logout()">로그아웃</button>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn on" onclick="showTab('search')">💳 결제 조회 및 환불</button>
+    <button class="tab-btn" onclick="showTab('refunds')">📋 환불 내역</button>
+  </div>
+
+  <div class="wrap">
+
+    <!-- 탭1: 결제 조회 및 환불 -->
+    <div id="tab-search">
+      <div class="card">
+        <div class="card-title">🔍 결제 조회</div>
+        <div class="step-guide">
+          <div class="step">1</div><span>고객 정보 입력</span>
+          <span class="step-arrow">→</span>
+          <div class="step">2</div><span>결제건 확인</span>
+          <span class="step-arrow">→</span>
+          <div class="step">3</div><span>환불 요청</span>
+          <span class="step-arrow">→</span>
+          <div class="step">4</div><span>완료</span>
+        </div>
+        <div class="search-row">
+          <div class="field">
+            <label>생년월일 (YYYYMMDD)</label>
+            <input type="text" id="s-birth" placeholder="19900101" maxlength="8">
+          </div>
+          <div class="field">
+            <label>성별</label>
+            <select id="s-gender" style="width:100px;">
+              <option value="">전체</option>
+              <option value="M">남</option>
+              <option value="F">여</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>카드사</label>
+            <input type="text" id="s-card-company" placeholder="신한, 삼성 등" style="width:130px;">
+          </div>
+          <div class="field">
+            <label>카드 뒷 4자리</label>
+            <input type="text" id="s-card-last4" placeholder="1234" maxlength="4" style="width:100px;">
+          </div>
+          <button class="btn btn-primary" onclick="doSearch()" style="height:38px;">🔍 조회</button>
+          <button class="btn btn-outline" onclick="resetSearch()" style="height:38px;">초기화</button>
+        </div>
+      </div>
+
+      <div id="search-loading" class="hidden card loading">⏳ 조회 중...</div>
+      <div id="search-empty"   class="hidden card empty">😅 검색 결과가 없습니다.</div>
+      <div id="search-result"  class="hidden card">
+        <div class="card-title">📄 조회 결과 <span id="result-count" style="font-size:13px;color:#888;font-weight:400;"></span></div>
+        <div id="search-summary" class="summary-bar"></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>서비스</th><th>생년월일</th><th>성별</th>
+                <th>결제수단</th><th>카드사</th><th>뒷4자리</th>
+                <th>결제금액</th><th>결제일시</th><th>환불일시</th>
+                <th>상태</th><th>환불처리</th>
+              </tr>
+            </thead>
+            <tbody id="search-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 탭2: 환불 내역 -->
+    <div id="tab-refunds" class="hidden">
+      <div class="card">
+        <div class="card-title">📋 환불 내역 조회</div>
+        <div class="search-row">
+          <div class="field">
+            <label>시작일 (YYYYMMDD)</label>
+            <input type="text" id="r-start" placeholder="20260601" maxlength="8" style="width:140px;">
+          </div>
+          <div class="field">
+            <label>종료일 (YYYYMMDD)</label>
+            <input type="text" id="r-end" placeholder="20260630" maxlength="8" style="width:140px;">
+          </div>
+          <button class="btn btn-primary" onclick="loadRefunds()" style="height:38px;">조회</button>
+          <button class="btn btn-green"   onclick="downloadRefunds()" style="height:38px;">⬇ 엑셀 다운로드</button>
+        </div>
+      </div>
+
+      <div id="refund-loading" class="hidden card loading">⏳ 조회 중...</div>
+      <div id="refund-empty"   class="hidden card empty">환불 내역이 없습니다.</div>
+      <div id="refund-result"  class="hidden card">
+        <div class="card-title">📋 환불 내역</div>
+        <div id="refund-summary" class="summary-bar"></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>서비스</th><th>생년월일</th><th>성별</th>
+                <th>결제수단</th><th>카드사</th><th>뒷4자리</th>
+                <th>결제금액</th><th>환불금액</th>
+                <th>결제일시</th><th>환불일시</th>
+                <th>환불형태</th><th>환불사유</th><th>메모</th>
+              </tr>
+            </thead>
+            <tbody id="refund-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 환불 모달 -->
+<div id="refund-modal" class="modal-bg hidden">
+  <div class="modal">
+    <div class="modal-title">💳 환불 처리</div>
+    <div class="modal-info" id="modal-info"></div>
+    <div class="modal-field">
+      <label>환불 형태 *</label>
+      <div class="refund-type-wrap">
+        <button class="refund-type-btn on"  id="btn-api"  onclick="selectRefundType('API')">💳 카드환불 (PG자동)</button>
+        <button class="refund-type-btn"     id="btn-cash" onclick="selectRefundType('CASH')">💵 현금환불 (계좌송금)</button>
+      </div>
+    </div>
+    <div class="modal-field">
+      <label>환불 사유 *</label>
+      <input type="text" id="modal-reason" placeholder="환불 사유를 입력하세요">
+    </div>
+    <div class="modal-field hidden" id="modal-memo-wrap">
+      <label>계좌 정보 메모</label>
+      <input type="text" id="modal-memo" placeholder="예: 신한 110-123-456789 홍길동">
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="closeModal()">취소</button>
+      <button class="btn btn-danger"  onclick="submitRefund()">✅ 환불 확인</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '/api/unified-admin'
+let adminToken = null
+let currentPaymentKey = null
+let currentRefundType = 'API'
+let savedPassword = ''
+
+// ── 로그인 ──
+async function sendOTP() {
+  const pass = document.getElementById('login-pass').value.trim()
+  if (!pass) { document.getElementById('step1-err').textContent = '비밀번호를 입력하세요.'; return }
+
+  const btn = document.getElementById('send-btn')
+  btn.disabled = true
+  btn.textContent = '발송 중...'
+  document.getElementById('step1-err').textContent = ''
+
+  try {
+    const res = await fetch(`${API}/otp/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pass })
+    })
+    const data = await res.json()
+    if (res.ok) {
+      savedPassword = pass
+      document.getElementById('step1').classList.remove('active')
+      document.getElementById('step2').classList.add('active')
+      setTimeout(() => document.getElementById('otp-input').focus(), 100)
+    } else {
+      document.getElementById('step1-err').textContent = data.detail || '오류가 발생했습니다.'
+    }
+  } catch(e) {
+    document.getElementById('step1-err').textContent = '서버 연결 오류입니다.'
+  } finally {
+    btn.disabled = false
+    btn.textContent = '인증코드 발송'
+  }
+}
+
+async function verifyOTP() {
+  const code = document.getElementById('otp-input').value.trim()
+  if (code.length !== 6) { document.getElementById('step2-err').textContent = '6자리 코드를 입력하세요.'; return }
+
+  const btn = document.getElementById('verify-btn')
+  btn.disabled = true
+  btn.textContent = '확인 중...'
+  document.getElementById('step2-err').textContent = ''
+
+  try {
+    const res = await fetch(`${API}/otp/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: savedPassword, otp_code: code })
+    })
+    const data = await res.json()
+    if (res.ok && data.token) {
+      adminToken = data.token
+      document.getElementById('login-screen').classList.add('hidden')
+      document.getElementById('main-screen').classList.remove('hidden')
+      initDates()
+    } else {
+      document.getElementById('step2-err').textContent = data.detail || '인증코드가 틀렸습니다.'
+    }
+  } catch(e) {
+    document.getElementById('step2-err').textContent = '서버 연결 오류입니다.'
+  } finally {
+    btn.disabled = false
+    btn.textContent = '로그인'
+  }
+}
+
+async function resendOTP() {
+  document.getElementById('step2').classList.remove('active')
+  document.getElementById('step1').classList.add('active')
+  document.getElementById('otp-input').value = ''
+}
+
+function logout() {
+  adminToken = null
+  savedPassword = ''
+  document.getElementById('main-screen').classList.add('hidden')
+  document.getElementById('login-screen').classList.remove('hidden')
+  document.getElementById('login-pass').value = ''
+  document.getElementById('step1').classList.add('active')
+  document.getElementById('step2').classList.remove('active')
+}
+
+// ── API 호출 ──
+async function apiFetch(url, options = {}) {
+  if (!adminToken) { alert('로그인이 필요합니다.'); return null }
+  const sep = url.includes('?') ? '&' : '?'
+  const res = await fetch(url + sep + 'token=' + adminToken, {
+    ...options,
+    headers: { 'Content-Type': 'application/json', ...(options.headers||{}) }
+  })
+  if (res.status === 401) {
+    alert('세션이 만료되었습니다. 다시 로그인하세요.')
+    logout()
+    return null
+  }
+  return res
+}
+
+// ── 탭 ──
+function showTab(tab) {
+  document.getElementById('tab-search').classList.toggle('hidden', tab !== 'search')
+  document.getElementById('tab-refunds').classList.toggle('hidden', tab !== 'refunds')
+  document.querySelectorAll('.tab-btn').forEach((t, i) => {
+    t.classList.toggle('on', (i===0 && tab==='search') || (i===1 && tab==='refunds'))
+  })
+  if (tab === 'refunds') loadRefunds()
+}
+
+function formatDate(val) {
+  if (!val) return ''
+  const v = val.replace(/[-\/]/g, '')
+  if (v.length === 8) return `${v.slice(0,4)}-${v.slice(4,6)}-${v.slice(6,8)}`
+  return val
+}
+
+// ── 검색 ──
+async function doSearch() {
+  const birth = formatDate(document.getElementById('s-birth').value)
+  if (birth) document.getElementById('s-birth').value = birth
+
+  const params = new URLSearchParams()
+  if (birth) params.append('birth_date', birth)
+  const gender = document.getElementById('s-gender').value
+  const cardCo = document.getElementById('s-card-company').value
+  const card4  = document.getElementById('s-card-last4').value
+  if (gender) params.append('gender', gender)
+  if (cardCo) params.append('card_company', cardCo)
+  if (card4)  params.append('card_last4', card4)
+
+  ;['search-result','search-empty'].forEach(id => document.getElementById(id).classList.add('hidden'))
+  document.getElementById('search-loading').classList.remove('hidden')
+
+  const res = await apiFetch(`${API}/payments/search?${params}`)
+  document.getElementById('search-loading').classList.add('hidden')
+  if (!res) return
+
+  const data = await res.json()
+  if (!data.length) { document.getElementById('search-empty').classList.remove('hidden'); return }
+
+  const completedCnt = data.filter(r => r.status==='completed').length
+  const refundedCnt  = data.filter(r => r.status==='refunded').length
+  const totalAmt     = data.reduce((s,r) => s+r.amount, 0)
+
+  document.getElementById('result-count').textContent = `— 총 ${data.length}건`
+  document.getElementById('search-summary').innerHTML = `
+    <div class="summary-item">결제완료 <strong>${completedCnt}건</strong></div>
+    <div class="summary-item">환불됨 <strong>${refundedCnt}건</strong></div>
+    <div class="summary-item">결제금액 합계 <strong>${totalAmt.toLocaleString()}원</strong></div>
+  `
+  document.getElementById('search-tbody').innerHTML = data.map(r => `
+    <tr>
+      <td><span class="badge badge-${r.service}">${r.service==='huamo'?'후아모':'자미두수'}</span></td>
+      <td>${r.birth_date||'-'}</td>
+      <td>${r.gender||'-'}</td>
+      <td><span class="badge badge-${r.pay_method}">${r.pay_method}</span></td>
+      <td>${r.card_company}</td>
+      <td>${r.card_last4}</td>
+      <td class="amount">${r.amount.toLocaleString()}원</td>
+      <td>${r.paid_at}</td>
+      <td>${r.refunded_at!=='-'?`<span style="color:#e24b4a">${r.refunded_at}</span>`:'-'}</td>
+      <td><span class="badge badge-${r.status}">${r.status==='completed'?'결제완료':'환불됨'}</span></td>
+      <td>${r.status==='completed'
+        ?`<button class="btn btn-danger btn-sm" onclick="openRefund('${r.payment_key}','${r.service}','${r.service_type}',${r.amount},'${r.pay_method}','${r.card_company}','${r.card_last4}','${r.birth_date}','${r.gender}')">환불</button>`
+        :'<span style="color:#ccc;font-size:12px">처리완료</span>'
+      }</td>
+    </tr>
+  `).join('')
+  document.getElementById('search-result').classList.remove('hidden')
+}
+
+function resetSearch() {
+  ;['s-birth','s-card-company','s-card-last4'].forEach(id => document.getElementById(id).value='')
+  document.getElementById('s-gender').value=''
+  ;['search-result','search-empty','search-loading'].forEach(id => document.getElementById(id).classList.add('hidden'))
+}
+
+// ── 환불 모달 ──
+function openRefund(paymentKey, service, serviceType, amount, payMethod, cardCompany, cardLast4, birthDate, gender) {
+  currentPaymentKey = paymentKey
+  selectRefundType(payMethod==='CARD' ? 'API' : 'CASH')
+  document.getElementById('modal-info').innerHTML = `
+    <div class="modal-info-row"><span class="label">서비스</span><span class="value">${serviceType}</span></div>
+    <div class="modal-info-row"><span class="label">생년월일</span><span class="value">${birthDate}</span></div>
+    <div class="modal-info-row"><span class="label">성별</span><span class="value">${gender}</span></div>
+    <div class="modal-info-row"><span class="label">결제수단</span><span class="value">${payMethod}</span></div>
+    <div class="modal-info-row"><span class="label">카드사 / 뒷4자리</span><span class="value">${cardCompany} ${cardLast4}</span></div>
+    <div class="modal-info-row highlight"><span class="label">환불 금액</span><span class="value">${amount.toLocaleString()}원</span></div>
+  `
+  document.getElementById('modal-reason').value=''
+  document.getElementById('modal-memo').value=''
+  document.getElementById('refund-modal').classList.remove('hidden')
+}
+
+function selectRefundType(type) {
+  currentRefundType = type
+  document.getElementById('btn-api').className  = 'refund-type-btn' + (type==='API'  ? ' on':'')
+  document.getElementById('btn-cash').className = 'refund-type-btn' + (type==='CASH' ? ' cash-on':'')
+  document.getElementById('modal-memo-wrap').classList.toggle('hidden', type!=='CASH')
+}
+
+function closeModal() {
+  document.getElementById('refund-modal').classList.add('hidden')
+  currentPaymentKey=null
+}
+
+async function submitRefund() {
+  const reason = document.getElementById('modal-reason').value.trim()
+  if (!reason) { alert('환불 사유를 입력해주세요.'); return }
+  if (!confirm('정말 환불 처리하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) return
+
+  const res = await apiFetch(`${API}/payments/refund`, {
+    method: 'POST',
+    body: JSON.stringify({
+      payment_id: currentPaymentKey,
+      refund_method: currentRefundType,
+      refund_reason: reason,
+      refund_memo: document.getElementById('modal-memo').value
+    })
+  })
+  if (!res) return
+  const data = await res.json()
+  if (data.success) {
+    alert(`✅ 환불 완료!\n환불금액: ${data.refund_amount.toLocaleString()}원\n처리일시: ${data.refunded_at}`)
+    closeModal()
+    doSearch()
+  } else {
+    alert('환불 처리 실패: ' + JSON.stringify(data))
+  }
+}
+
+// ── 환불 내역 ──
+async function loadRefunds() {
+  ;['r-start','r-end'].forEach(id => {
+    const el = document.getElementById(id)
+    if (el.value) el.value = formatDate(el.value)
+  })
+  const params = new URLSearchParams()
+  const start = document.getElementById('r-start').value
+  const end   = document.getElementById('r-end').value
+  if (start) params.append('start', start)
+  if (end)   params.append('end', end)
+
+  ;['refund-result','refund-empty'].forEach(id => document.getElementById(id).classList.add('hidden'))
+  document.getElementById('refund-loading').classList.remove('hidden')
+
+  const res = await apiFetch(`${API}/refunds?${params}`)
+  document.getElementById('refund-loading').classList.add('hidden')
+  if (!res) return
+
+  const data = await res.json()
+  if (!data.items.length) { document.getElementById('refund-empty').classList.remove('hidden'); return }
+
+  document.getElementById('refund-summary').innerHTML = `
+    <div class="summary-item">총 환불건수 <strong>${data.total_count}건</strong></div>
+    <div class="summary-item">총 환불금액 <strong>${data.total_amount.toLocaleString()}원</strong></div>
+    <div class="summary-item">💳 카드환불 <strong>${data.items.filter(r=>r.refund_method==='API').length}건</strong></div>
+    <div class="summary-item">💵 현금환불 <strong>${data.items.filter(r=>r.refund_method==='CASH').length}건</strong></div>
+  `
+  document.getElementById('refund-tbody').innerHTML = data.items.map(r => `
+    <tr>
+      <td><span class="badge badge-${r.service}">${r.service==='huamo'?'후아모':'자미두수'}</span></td>
+      <td>${r.birth_date||'-'}</td><td>${r.gender||'-'}</td>
+      <td><span class="badge badge-${r.pay_method}">${r.pay_method}</span></td>
+      <td>${r.card_company}</td><td>${r.card_last4}</td>
+      <td class="amount">${r.amount.toLocaleString()}원</td>
+      <td class="refund-amount">${r.refund_amount.toLocaleString()}원</td>
+      <td>${r.paid_at}</td><td>${r.refunded_at}</td>
+      <td>${r.refund_method==='API'
+        ?'<span style="color:#5b21b6;font-weight:600">💳 카드환불</span>'
+        :'<span style="color:#b45309;font-weight:600">💵 현금환불</span>'
+      }</td>
+      <td>${r.refund_reason}</td>
+      <td style="color:#888">${r.refund_memo}</td>
+    </tr>
+  `).join('')
+  document.getElementById('refund-result').classList.remove('hidden')
+}
+
+async function downloadRefunds() {
+  ;['r-start','r-end'].forEach(id => {
+    const el = document.getElementById(id)
+    if (el.value) el.value = formatDate(el.value)
+  })
+  if (!adminToken) return
+  const params = new URLSearchParams()
+  const start = document.getElementById('r-start').value
+  const end   = document.getElementById('r-end').value
+  if (start) params.append('start', start)
+  if (end)   params.append('end', end)
+  params.append('token', adminToken)
+  const a = document.createElement('a')
+  a.href = `${API}/refunds/download?${params}`
+  a.click()
+}
+
+function initDates() {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth()+1).padStart(2,'0')
+  const d = String(now.getDate()).padStart(2,'0')
+  document.getElementById('r-start').value = `${y}${m}01`
+  document.getElementById('r-end').value   = `${y}${m}${d}`
+}
+</script>
+</body>
+</html>
