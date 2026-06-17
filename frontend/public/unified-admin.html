@@ -153,6 +153,7 @@ tr:hover td { background: #faf8ff; }
   <div class="tab-bar">
     <button class="tab-btn on" onclick="showTab('search')">💳 결제 조회 및 환불</button>
     <button class="tab-btn" onclick="showTab('refunds')">📋 환불 내역</button>
+  <button class="tab-btn" onclick="showTab('stats')">📊 이용자 통계</button>
   </div>
 
   <div class="wrap">
@@ -260,6 +261,86 @@ tr:hover td { background: #faf8ff; }
   </div>
 </div>
 
+  <!-- 탭3: 이용자 통계 -->
+  <div id="tab-stats" class="hidden">
+    <div class="card">
+      <div class="card-title">📊 이용자 통계 분석</div>
+      <div class="search-row">
+        <div class="field">
+          <label>시작일 (YYYYMMDD)</label>
+          <input type="text" id="st-start" placeholder="20260601" maxlength="8" style="width:140px;">
+        </div>
+        <div class="field">
+          <label>종료일 (YYYYMMDD)</label>
+          <input type="text" id="st-end" placeholder="20260630" maxlength="8" style="width:140px;">
+        </div>
+        <button class="btn btn-primary" onclick="loadStats()" style="height:38px;">조회</button>
+        <button class="btn btn-green"   onclick="downloadStats()" style="height:38px;">⬇ 엑셀 다운로드</button>
+      </div>
+    </div>
+
+    <div id="stats-loading" class="hidden card loading">⏳ 조회 중...</div>
+    <div id="stats-empty"   class="hidden card empty">데이터가 없습니다.</div>
+
+    <div id="stats-result" class="hidden">
+      <!-- 요약 카드 -->
+      <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:16px; margin-bottom:16px;">
+        <div class="card" style="text-align:center; padding:20px;">
+          <div style="font-size:12px;color:#999;margin-bottom:8px;">총 이용자</div>
+          <div id="stat-total" style="font-size:28px;font-weight:700;color:#7c3aed;"></div>
+          <div style="font-size:12px;color:#999;margin-top:4px;">명</div>
+        </div>
+        <div class="card" style="text-align:center; padding:20px;">
+          <div style="font-size:12px;color:#999;margin-bottom:8px;">후아모</div>
+          <div id="stat-huamo" style="font-size:28px;font-weight:700;color:#1e40af;"></div>
+          <div style="font-size:12px;color:#999;margin-top:4px;">명</div>
+        </div>
+        <div class="card" style="text-align:center; padding:20px;">
+          <div style="font-size:12px;color:#999;margin-bottom:8px;">자미두수</div>
+          <div id="stat-ziwei" style="font-size:28px;font-weight:700;color:#9d174d;"></div>
+          <div style="font-size:12px;color:#999;margin-top:4px;">명</div>
+        </div>
+        <div class="card" style="text-align:center; padding:20px;">
+          <div style="font-size:12px;color:#999;margin-bottom:8px;">여성 비율</div>
+          <div id="stat-female-pct" style="font-size:28px;font-weight:700;color:#db2777;"></div>
+          <div style="font-size:12px;color:#999;margin-top:4px;">%</div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:16px;">
+        <!-- 성별 분포 -->
+        <div class="card">
+          <div class="card-title">👥 성별 분포</div>
+          <div id="gender-table"></div>
+        </div>
+
+        <!-- 연령대 분포 -->
+        <div class="card">
+          <div class="card-title">📅 연령대 분포</div>
+          <div id="age-table"></div>
+        </div>
+      </div>
+
+      <!-- 일자별 이용자 -->
+      <div class="card">
+        <div class="card-title">📈 일자별 이용자 현황</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>날짜</th>
+                <th>후아모</th>
+                <th>자미두수</th>
+                <th>합계</th>
+              </tr>
+            </thead>
+            <tbody id="daily-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
 <!-- 환불 모달 -->
 <div id="refund-modal" class="modal-bg hidden">
   <div class="modal">
@@ -345,6 +426,7 @@ async function verifyOTP() {
     const data = await res.json()
     if (res.ok && data.token) {
       adminToken = data.token
+      sessionStorage.setItem('admin_token', data.token)
       document.getElementById('login-screen').classList.add('hidden')
       document.getElementById('main-screen').classList.remove('hidden')
       initDates()
@@ -377,7 +459,10 @@ function logout() {
 
 // ── API 호출 ──
 async function apiFetch(url, options = {}) {
-  if (!adminToken) { alert('로그인이 필요합니다.'); return null }
+  if (!adminToken) {
+    adminToken = sessionStorage.getItem('admin_token')
+  }
+  if (!adminToken) { alert('로그인이 필요합니다. 새로고침하세요.'); return null }
   const sep = url.includes('?') ? '&' : '?'
   const res = await fetch(url + sep + 'token=' + adminToken, {
     ...options,
@@ -395,10 +480,16 @@ async function apiFetch(url, options = {}) {
 function showTab(tab) {
   document.getElementById('tab-search').classList.toggle('hidden', tab !== 'search')
   document.getElementById('tab-refunds').classList.toggle('hidden', tab !== 'refunds')
+  document.getElementById('tab-stats').classList.toggle('hidden', tab !== 'stats')
   document.querySelectorAll('.tab-btn').forEach((t, i) => {
-    t.classList.toggle('on', (i===0 && tab==='search') || (i===1 && tab==='refunds'))
+    t.classList.toggle('on',
+      (i===0 && tab==='search') ||
+      (i===1 && tab==='refunds') ||
+      (i===2 && tab==='stats')
+    )
   })
   if (tab === 'refunds') loadRefunds()
+  if (tab === 'stats') loadStats()
 }
 
 function formatDate(val) {
@@ -585,6 +676,130 @@ async function downloadRefunds() {
   params.append('token', adminToken)
   const a = document.createElement('a')
   a.href = `${API}/refunds/download?${params}`
+  a.click()
+}
+
+// ── 통계 ──
+async function loadStats() {
+  ;['st-start','st-end'].forEach(id => {
+    const el = document.getElementById(id)
+    if (el.value) el.value = formatDate(el.value)
+  })
+  const params = new URLSearchParams()
+  const start = document.getElementById('st-start').value
+  const end   = document.getElementById('st-end').value
+  if (start) params.append('start', start)
+  if (end)   params.append('end', end)
+
+  ;['stats-result','stats-empty'].forEach(id => document.getElementById(id).classList.add('hidden'))
+  document.getElementById('stats-loading').classList.remove('hidden')
+
+  const res = await apiFetch(`${API}/stats/users?${params}`)
+  document.getElementById('stats-loading').classList.add('hidden')
+  if (!res) return
+
+  const data = await res.json()
+  if (!data.total) { document.getElementById('stats-empty').classList.remove('hidden'); return }
+
+  // 요약
+  document.getElementById('stat-total').textContent = data.total.toLocaleString()
+  document.getElementById('stat-huamo').textContent = (data.services.huamo||0).toLocaleString()
+  document.getElementById('stat-ziwei').textContent = (data.services.ziwei||0).toLocaleString()
+  const totalGender = (data.gender.M||0) + (data.gender.F||0) || 1
+  document.getElementById('stat-female-pct').textContent = ((data.gender.F||0)/totalGender*100).toFixed(1)
+
+  // 성별
+  const gTotal = (data.gender.M||0) + (data.gender.F||0) || 1
+  document.getElementById('gender-table').innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <tr style="background:#f4f0ff;">
+        <th style="padding:8px;text-align:center;border-bottom:2px solid #ddd6fe;">성별</th>
+        <th style="padding:8px;text-align:center;border-bottom:2px solid #ddd6fe;">인원</th>
+        <th style="padding:8px;text-align:center;border-bottom:2px solid #ddd6fe;">비율</th>
+        <th style="padding:8px;text-align:center;border-bottom:2px solid #ddd6fe;">그래프</th>
+      </tr>
+      <tr style="background:#dbeafe;">
+        <td style="padding:8px;text-align:center;">남성</td>
+        <td style="padding:8px;text-align:center;font-weight:700;">${(data.gender.M||0).toLocaleString()}명</td>
+        <td style="padding:8px;text-align:center;">${((data.gender.M||0)/gTotal*100).toFixed(1)}%</td>
+        <td style="padding:8px;"><div style="background:#3b82f6;height:16px;border-radius:4px;width:${(data.gender.M||0)/gTotal*100}%"></div></td>
+      </tr>
+      <tr style="background:#fce7f3;">
+        <td style="padding:8px;text-align:center;">여성</td>
+        <td style="padding:8px;text-align:center;font-weight:700;">${(data.gender.F||0).toLocaleString()}명</td>
+        <td style="padding:8px;text-align:center;">${((data.gender.F||0)/gTotal*100).toFixed(1)}%</td>
+        <td style="padding:8px;"><div style="background:#ec4899;height:16px;border-radius:4px;width:${(data.gender.F||0)/gTotal*100}%"></div></td>
+      </tr>
+    </table>
+  `
+
+  // 연령대
+  const ageFills = ["EDE9FE","DDD6FE","C4B5FD","A78BFA","8B5CF6","7C3AED"]
+  const ageTotal = Object.values(data.age_groups).reduce((s,v) => s + (typeof v === 'object' ? v.total : v), 0) || 1
+  document.getElementById('age-table').innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <tr style="background:#f4f0ff;">
+        <th style="padding:8px;text-align:center;border-bottom:2px solid #ddd6fe;">연령대</th>
+        <th style="padding:8px;text-align:center;border-bottom:2px solid #ddd6fe;">인원</th>
+        <th style="padding:8px;text-align:center;border-bottom:2px solid #ddd6fe;">남성</th>
+        <th style="padding:8px;text-align:center;border-bottom:2px solid #ddd6fe;">여성</th>
+        <th style="padding:8px;text-align:center;border-bottom:2px solid #ddd6fe;">비율</th>
+        <th style="padding:8px;text-align:center;border-bottom:2px solid #ddd6fe;">그래프</th>
+      </tr>
+      ${Object.entries(data.age_groups).map(([age,val],i) => {
+        const cnt = typeof val === 'object' ? val.total : val
+        const m   = typeof val === 'object' ? val.M : 0
+        const f   = typeof val === 'object' ? val.F : 0
+        return `
+      <tr style="background:#${ageFills[i]}33;">
+        <td style="padding:8px;text-align:center;">${age}</td>
+        <td style="padding:8px;text-align:center;font-weight:700;">${cnt.toLocaleString()}명</td>
+        <td style="padding:8px;text-align:center;color:#3b82f6;">${m}명</td>
+        <td style="padding:8px;text-align:center;color:#ec4899;">${f}명</td>
+        <td style="padding:8px;text-align:center;">${(cnt/ageTotal*100).toFixed(1)}%</td>
+        <td style="padding:8px;"><div style="background:#${ageFills[i]};height:16px;border-radius:4px;width:${cnt/ageTotal*100}%"></div></td>
+      </tr>`}).join('')}
+    </table>
+  `
+
+  // 일자별
+  const dailyEntries = Object.entries(data.daily).sort()
+  let totalH = 0, totalZ = 0
+  document.getElementById('daily-tbody').innerHTML = dailyEntries.map(([day, val]) => {
+    const h = typeof val === 'object' ? (val.huamo||0) : val
+    const z = typeof val === 'object' ? (val.ziwei||0) : 0
+    totalH += h; totalZ += z; return `
+    <tr>
+      <td>${day}</td>
+      <td>${h||'-'}</td>
+      <td>${z||'-'}</td>
+      <td style="font-weight:700;">${h+z}</td>
+    </tr>`
+  }).join('') + `
+    <tr style="background:#f7f4ff;font-weight:700;">
+      <td>합계</td>
+      <td>${totalH.toLocaleString()}</td>
+      <td>${totalZ.toLocaleString()}</td>
+      <td>${(totalH+totalZ).toLocaleString()}</td>
+    </tr>`
+
+  document.getElementById('stats-result').classList.remove('hidden')
+}
+
+async function downloadStats() {
+  ;['st-start','st-end'].forEach(id => {
+    const el = document.getElementById(id)
+    if (el.value) el.value = formatDate(el.value)
+  })
+  if (!adminToken) return
+  const params = new URLSearchParams()
+  const start = document.getElementById('st-start').value
+  const end   = document.getElementById('st-end').value
+  if (start) params.append('start', start)
+  if (end)   params.append('end', end)
+  params.append('token', adminToken)
+  const a = document.createElement('a')
+  a.href = `${API}/stats/download?${params}`
   a.click()
 }
 

@@ -1,7 +1,9 @@
-venv/
-__pycache__/
-*.pyc
 .env
-node_service/node_modules/
-frontend/node_modules/
-*.bak*
+*.pyc
+__pycache__/
+venv/
+node_modules/
+*.log
+*.backup*
+*.bak
+*_backup*

@@ -436,3 +436,322 @@ async def download_refunds(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+# ─────────────────────────────────────────
+# 통계 API (기간별 이용자 분석)
+# ─────────────────────────────────────────
+@router.get("/stats/users")
+async def get_user_stats(
+    start: Optional[str] = Query(None),
+    end:   Optional[str] = Query(None),
+    token: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+    _: HTTPBasicCredentials = Depends(verify_admin)
+):
+    import psycopg2
+
+    now = datetime.now()
+
+    # fortune DB (saju_cache) 조회
+    fortune_rows = []
+    try:
+        conn = psycopg2.connect(
+            "postgresql://fortune_user:fortune_pass_2026@localhost:5432/fortune"
+        )
+        cur = conn.cursor()
+        query = "SELECT year, gender, created_at FROM saju_cache WHERE 1=1"
+        params = []
+        if start:
+            query += " AND created_at >= %s"
+            params.append(start)
+        if end:
+            query += " AND created_at <= %s"
+            params.append(end + " 23:59:59")
+        cur.execute(query, params)
+        fortune_rows = [{"year": r[0], "gender": r[1], "created_at": r[2], "service": "huamo"} for r in cur.fetchall()]
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"fortune DB 조회 오류: {e}")
+
+    # ziwei DB (ziwei_cache) 조회
+    ziwei_rows = []
+    try:
+        conn = psycopg2.connect(
+            "postgresql://fortune_user:fortune_pass_2026@localhost:5432/ziwei"
+        )
+        cur = conn.cursor()
+        query = "SELECT input_data, created_at FROM ziwei_cache WHERE 1=1"
+        params = []
+        if start:
+            query += " AND created_at >= %s"
+            params.append(start)
+        if end:
+            query += " AND created_at <= %s"
+            params.append(end + " 23:59:59")
+        cur.execute(query, params)
+        import json as _json
+        for r in cur.fetchall():
+            try:
+                d = _json.loads(r[0]) if r[0] else {}
+                is_male = d.get("is_male")
+                gender = "M" if is_male is True else ("F" if is_male is False else None)
+                ziwei_rows.append({"year": d.get("year"), "gender": gender, "created_at": r[1], "service": "ziwei"})
+            except:
+                pass
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"ziwei DB 조회 오류: {e}")
+
+    all_rows = fortune_rows + ziwei_rows
+
+    # 성별 집계
+    gender_data = {"M": 0, "F": 0, "unknown": 0}
+    for r in all_rows:
+        g = r.get("gender")
+        if g == "M":   gender_data["M"] += 1
+        elif g == "F": gender_data["F"] += 1
+        else:          gender_data["unknown"] += 1
+
+    # 연령대 집계 (성별 포함)
+    age_keys = ["10대", "20대", "30대", "40대", "50대", "60대+"]
+    age_groups = {k: {"M": 0, "F": 0, "total": 0} for k in age_keys}
+    for r in all_rows:
+        birth_year = r.get("year")
+        if birth_year:
+            age = now.year - birth_year
+            if age < 20:   key = "10대"
+            elif age < 30: key = "20대"
+            elif age < 40: key = "30대"
+            elif age < 50: key = "40대"
+            elif age < 60: key = "50대"
+            else:          key = "60대+"
+            g = r.get("gender")
+            if g == "M":   age_groups[key]["M"] += 1
+            elif g == "F": age_groups[key]["F"] += 1
+            age_groups[key]["total"] += 1
+
+    # 일자별 이용자 (서비스별 분리)
+    daily = {}
+    for r in all_rows:
+        dt = r.get("created_at")
+        if dt:
+            day = dt.strftime("%Y-%m-%d") if hasattr(dt, 'strftime') else str(dt)[:10]
+            if day not in daily:
+                daily[day] = {"huamo": 0, "ziwei": 0}
+            svc = r.get("service", "")
+            if svc == "huamo":
+                daily[day]["huamo"] += 1
+            elif svc == "ziwei":
+                daily[day]["ziwei"] += 1
+
+    # 서비스별
+    service_data = {"huamo": 0, "ziwei": 0}
+    for r in all_rows:
+        s = r.get("service")
+        if s in service_data:
+            service_data[s] += 1
+
+    return {
+        "total": len(all_rows),
+        "gender": gender_data,
+        "age_groups": age_groups,
+        "daily": dict(sorted(daily.items())),
+        "services": service_data,
+    }
+
+# ─────────────────────────────────────────
+# 통계 엑셀 다운로드
+# ─────────────────────────────────────────
+@router.get("/stats/download")
+async def download_stats(
+    start: Optional[str] = Query(None),
+    end:   Optional[str] = Query(None),
+    token: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+    _: HTTPBasicCredentials = Depends(verify_admin)
+):
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+    import psycopg2, json as _json, io as _io
+
+    now = datetime.now()
+
+    # 데이터 수집 (위와 동일)
+    all_rows = []
+    for db_name, service_name in [("fortune", "huamo"), ("ziwei", "ziwei")]:
+        try:
+            conn = psycopg2.connect(f"postgresql://fortune_user:fortune_pass_2026@localhost:5432/{db_name}")
+            cur = conn.cursor()
+            if service_name == "huamo":
+                q = "SELECT year, gender, created_at FROM saju_cache WHERE 1=1"
+            else:
+                q = "SELECT input_data, created_at FROM ziwei_cache WHERE 1=1"
+            params = []
+            if start:
+                q += " AND created_at >= %s"; params.append(start)
+            if end:
+                q += " AND created_at <= %s"; params.append(end + " 23:59:59")
+            cur.execute(q, params)
+            for r in cur.fetchall():
+                if service_name == "huamo":
+                    all_rows.append({"year": r[0], "gender": r[1], "created_at": r[2], "service": "후아모"})
+                else:
+                    try:
+                        d = _json.loads(r[0]) if r[0] else {}
+                        is_male = d.get("is_male")
+                        g = "M" if is_male is True else ("F" if is_male is False else None)
+                        all_rows.append({"year": d.get("year"), "gender": g, "created_at": r[1], "service": "자미두수"})
+                    except: pass
+            cur.close(); conn.close()
+        except Exception as e:
+            print(f"{db_name} 오류: {e}")
+
+    wb = Workbook()
+
+    # 스타일
+    header_font = Font(bold=True, color="FFFFFF", size=11)
+    header_fill = PatternFill("solid", fgColor="3B1A7E")
+    center      = Alignment(horizontal="center", vertical="center")
+    thin        = Side(style="thin", color="E5E5E5")
+    border      = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    # ── 시트1: 일자별 이용자 ──
+    ws1 = wb.active
+    ws1.title = "일자별이용자"
+    ws1.merge_cells("A1:D1")
+    ws1["A1"].value = f"일자별 이용자 현황 ({start or '전체'} ~ {end or '전체'})"
+    ws1["A1"].font  = Font(bold=True, size=13, color="1A0A2E")
+    ws1["A1"].alignment = center
+    ws1.row_dimensions[1].height = 28
+
+    for col, h in enumerate(["날짜", "후아모", "자미두수", "합계"], 1):
+        c = ws1.cell(row=2, column=col, value=h)
+        c.font = header_font; c.fill = header_fill
+        c.alignment = center; c.border = border
+
+    daily_huamo  = {}
+    daily_ziwei  = {}
+    for r in all_rows:
+        dt = r.get("created_at")
+        day = dt.strftime("%Y-%m-%d") if hasattr(dt, 'strftime') else str(dt)[:10]
+        if r["service"] == "후아모":
+            daily_huamo[day] = daily_huamo.get(day, 0) + 1
+        else:
+            daily_ziwei[day] = daily_ziwei.get(day, 0) + 1
+
+    all_days = sorted(set(list(daily_huamo.keys()) + list(daily_ziwei.keys())))
+    total_h = total_z = 0
+    for i, day in enumerate(all_days, 3):
+        h = daily_huamo.get(day, 0)
+        z = daily_ziwei.get(day, 0)
+        total_h += h; total_z += z
+        for col, val in enumerate([day, h, z, h+z], 1):
+            c = ws1.cell(row=i, column=col, value=val)
+            c.alignment = center; c.border = border
+            if col == 4: c.font = Font(bold=True)
+
+    tr = len(all_days) + 3
+    for col, val in enumerate(["합계", total_h, total_z, total_h+total_z], 1):
+        c = ws1.cell(row=tr, column=col, value=val)
+        c.font = Font(bold=True); c.fill = PatternFill("solid", fgColor="F3F0FF")
+        c.alignment = center; c.border = border
+
+    for col, w in enumerate([14, 10, 10, 10], 1):
+        ws1.column_dimensions[get_column_letter(col)].width = w
+
+    # ── 시트2: 성별/연령 분석 ──
+    ws2 = wb.create_sheet("성별연령분석")
+    ws2["A1"].value = "성별 분포"
+    ws2["A1"].font  = Font(bold=True, size=12, color="1A0A2E")
+
+    gender_data = {"남성": 0, "여성": 0}
+    age_groups  = {"10대": 0, "20대": 0, "30대": 0, "40대": 0, "50대": 0, "60대+": 0}
+    for r in all_rows:
+        g = r.get("gender")
+        if g == "M": gender_data["남성"] += 1
+        elif g == "F": gender_data["여성"] += 1
+        birth_year = r.get("year")
+        if birth_year:
+            age = now.year - birth_year
+            if age < 20:   age_groups["10대"] += 1
+            elif age < 30: age_groups["20대"] += 1
+            elif age < 40: age_groups["30대"] += 1
+            elif age < 50: age_groups["40대"] += 1
+            elif age < 60: age_groups["50대"] += 1
+            else:          age_groups["60대+"] += 1
+
+    for col, h in enumerate(["성별", "인원수", "비율"], 1):
+        c = ws2.cell(row=2, column=col, value=h)
+        c.font = header_font; c.fill = header_fill
+        c.alignment = center; c.border = border
+
+    total_gender = sum(gender_data.values()) or 1
+    fills = {"남성": "DBEAFE", "여성": "FCE7F3"}
+    for i, (g, cnt) in enumerate(gender_data.items(), 3):
+        pct = f"{cnt/total_gender*100:.1f}%"
+        for col, val in enumerate([g, cnt, pct], 1):
+            c = ws2.cell(row=i, column=col, value=val)
+            c.fill = PatternFill("solid", fgColor=fills.get(g, "FFFFFF"))
+            c.alignment = center; c.border = border
+
+    ws2["A7"].value = "연령대 분포"
+    ws2["A7"].font  = Font(bold=True, size=12, color="1A0A2E")
+
+    for col, h in enumerate(["연령대", "인원수", "비율"], 1):
+        c = ws2.cell(row=8, column=col, value=h)
+        c.font = header_font; c.fill = header_fill
+        c.alignment = center; c.border = border
+
+    total_age = sum(age_groups.values()) or 1
+    age_fills = ["EDE9FE","DDD6FE","C4B5FD","A78BFA","8B5CF6","7C3AED"]
+    for i, (age, cnt) in enumerate(age_groups.items(), 9):
+        pct = f"{cnt/total_age*100:.1f}%"
+        for col, val in enumerate([age, cnt, pct], 1):
+            c = ws2.cell(row=i, column=col, value=val)
+            c.fill = PatternFill("solid", fgColor=age_fills[i-9])
+            c.alignment = center; c.border = border
+
+    for col, w in enumerate([12, 10, 10], 1):
+        ws2.column_dimensions[get_column_letter(col)].width = w
+
+    # ── 시트3: 서비스별 분석 ──
+    ws3 = wb.create_sheet("서비스별분석")
+    ws3["A1"].value = "서비스별 이용 현황"
+    ws3["A1"].font  = Font(bold=True, size=12, color="1A0A2E")
+
+    for col, h in enumerate(["서비스", "이용자수", "비율"], 1):
+        c = ws3.cell(row=2, column=col, value=h)
+        c.font = header_font; c.fill = header_fill
+        c.alignment = center; c.border = border
+
+    svc_data = {"후아모": 0, "자미두수": 0}
+    for r in all_rows:
+        s = r.get("service")
+        if s in svc_data: svc_data[s] += 1
+
+    total_svc = sum(svc_data.values()) or 1
+    svc_fills = {"후아모": "DBEAFE", "자미두수": "FCE7F3"}
+    for i, (svc, cnt) in enumerate(svc_data.items(), 3):
+        pct = f"{cnt/total_svc*100:.1f}%"
+        for col, val in enumerate([svc, cnt, pct], 1):
+            c = ws3.cell(row=i, column=col, value=val)
+            c.fill = PatternFill("solid", fgColor=svc_fills.get(svc, "FFFFFF"))
+            c.alignment = center; c.border = border
+
+    for col, w in enumerate([14, 10, 10], 1):
+        ws3.column_dimensions[get_column_letter(col)].width = w
+
+    output = _io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    period = f"{start or 'all'}_{end or 'all'}"
+    filename = f"user_stats_{period}.xlsx"
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
