@@ -106,14 +106,20 @@ async def confirm_payment(req: PaymentConfirm, db: AsyncSession = Depends(get_db
     card_company = ""
     card_last4   = ""
     pay_method_str = "CARD"
-    if "card" in pay_method_data:
-        card_info    = pay_method_data.get("card", {})
-        card_company = card_info.get("issuer", {}).get("name", "")
-        card_num     = card_info.get("number", "")
-        card_last4   = card_num[-4:] if card_num else ""
-        pay_method_str = "CARD"
-    elif "easyPay" in pay_method_data:
-        pay_method_str = pay_method_data.get("easyPay", {}).get("provider", "EASYPAY")
+    if isinstance(pay_method_data, dict):
+        if "card" in pay_method_data:
+            card_info    = pay_method_data.get("card", {})
+            if isinstance(card_info, dict):
+                issuer = card_info.get("issuer", {})
+                card_company = issuer.get("name", "") if isinstance(issuer, dict) else ""
+                card_num     = card_info.get("number", "")
+                card_last4   = card_num[-4:] if card_num else ""
+            pay_method_str = "CARD"
+        elif "easyPay" in pay_method_data:
+            easy = pay_method_data.get("easyPay", {})
+            pay_method_str = easy.get("provider", "EASYPAY") if isinstance(easy, dict) else "EASYPAY"
+    elif isinstance(pay_method_data, str):
+        pay_method_str = pay_method_data
 
     if payment:
         payment.payment_key = req.payment_id
