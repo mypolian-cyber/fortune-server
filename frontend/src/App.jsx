@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Home from './pages/Home'
 import Goonghap from './pages/Goonghap'
 import Yukim from './pages/Yukim'
@@ -6,6 +6,7 @@ import Result from './pages/Result'
 import Privacy from './pages/Privacy'
 import PaymentModal from './components/Payment'
 import ContactModal from './components/Contact'
+import axios from 'axios'
 import { calculateSaju, calculateGoonghap } from './services/api'
 
 export default function App() {
@@ -21,6 +22,69 @@ export default function App() {
   const [loadingResult, setLoadingResult] = useState(false)
 
   const TEST_MODE = import.meta.env.VITE_TEST_MODE === 'true'
+
+
+  useEffect(() => {
+
+    if (window.location.pathname !== '/payment/redirect') return
+
+    const params = new URLSearchParams(window.location.search)
+
+    const paymentId = params.get('payment_id')
+
+    window.history.replaceState({}, '', '/')
+
+    if (!paymentId) return
+
+    let saved = null
+
+    try { saved = JSON.parse(sessionStorage.getItem('_pending') || 'null') } catch(e) {}
+
+    if (!saved) return
+
+    sessionStorage.removeItem('_pending')
+
+    axios.post('/api/payment/confirm', {
+
+      payment_id: paymentId,
+
+      service_type: saved.serviceType,
+
+      cache_key: saved.cacheKey || '',
+
+    }).then(({ data }) => {
+
+      if (data.success) {
+
+        setSajuData(saved.sajuData)
+
+        setPendingService(saved.serviceType)
+
+        if (saved.serviceType === 'goonghap') {
+
+          loadPaidGoonghapResult({ formA: saved.sajuData?.formA || saved.sajuData?.form, formB: saved.sajuData?.formB })
+
+        } else if (saved.serviceType === 'yukim') {
+
+          loadPaidYukimResult()
+
+        } else {
+
+          loadPaidResult(null, saved.serviceType, saved.sajuData)
+
+        }
+
+      }
+
+    }).catch(() => {
+
+      alert('\uacb0\uc81c \ud655\uc778 \uc624\ub958. \uace0\uac1d\uc13c\ud130\uc5d0 \ubb38\uc758\ud574\uc918.')
+
+    })
+
+  }, [])
+
+
 
   const loadPaidResult = async (cacheKey, serviceType, overrideSajuData = null) => {
     if (loadingResult) return
@@ -130,6 +194,7 @@ export default function App() {
     } else {
       setSajuData(data)
       setPendingService(serviceType)
+      try { sessionStorage.setItem('_pending', JSON.stringify({ sajuData: data, serviceType, cacheKey: data.form ? data.form.year+'_'+data.form.month+'_'+data.form.day+'_'+(data.form.hour||'')+'_'+data.form.gender : '' })) } catch(e) {}
       setShowPayment(true)
     }
   }
@@ -155,6 +220,7 @@ export default function App() {
   }
 
   const handlePaymentSuccess = () => {
+    try { sessionStorage.removeItem('_pending') } catch(e) {}
     setShowPayment(false)
     if (pendingService === 'goonghap') {
       const goonghapForm = {

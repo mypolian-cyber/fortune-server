@@ -14,6 +14,12 @@ app.add_middleware(
         "https://fortune.adelante-properties.com",
         "http://localhost:5173",
         "http://localhost:3000",
+
+        "http://localhost:5174",
+
+        "https://adelante.apps.tossmini.com",
+
+        "https://adelante.private-apps.tossmini.com",
     ],
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type", "Authorization"],

@@ -43,6 +43,7 @@ export default function PaymentModal({ serviceType, cacheKey, onSuccess, onClose
         currency: 'CURRENCY_KRW',
         customer: { fullName: '고객', phoneNumber: '010-0000-0000', email: 'customer@huamo.com' },
         payMethod: 'CARD',
+        redirectUrl: window.location.origin + '/payment/redirect',
       })
 
       if (!response || response.code) {
